@@ -13,7 +13,7 @@ type J interface { G() }
 type IImpl string
 func (me IImpl) F() {}
 
-var cbs=CBMap{ "I":func(bs []byte)(interface{},error){ return `(`+IImpl(bs)+`)`,nil } }
+var cbs=CBMap{ "jsonface.I":func(bs []byte)(interface{},error){ return `(`+IImpl(bs)+`)`,nil } }
 
 func TestStuntDouble(t *testing.T) {
     d,h,e:=stuntdoubleType(reflect.TypeOf(int32(0)),cbs); if fmt.Sprint(d,h,e)!="int32 false <nil>" { panic(fmt.Sprint(d,h,e)) }

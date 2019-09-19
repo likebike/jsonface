@@ -35,7 +35,7 @@ func Shape_UnmarshalJSON(bs []byte) (interface{},error) {
 }
 
 func init() {
-    AddGlobalCB("Shape", Shape_UnmarshalJSON)
+    AddGlobalCB("jsonface.Shape", Shape_UnmarshalJSON)
 }
 
 func Example() {

@@ -15,7 +15,7 @@ import (
     "sync"
 )
 
-// 'CB' means 'Callback'.  It is used for unmarshalling.
+// 'CB' means 'Callback'.  It is used for unmarshalling, exactly like an UnmarshalJSON method.
 type CB func([]byte) (interface{},error)
 
 // TypeName is the name of a type.  You might need to include the package name, depending on your situation.
@@ -27,7 +27,7 @@ type CBMap map[TypeName]CB
 
 // GetTypeName can help you understand the correct TypeNames to use during development.  After you understand how the TypeNames are made, you will usually just hard-code the names into your code, rather than using this function.
 func GetTypeName(x interface{}) TypeName {
-    return TypeName(reflect.TypeOf(x).Name())
+    return TypeName(reflect.TypeOf(x).String())   // String() is more precise than Name().
 }
 
 // We want to be able to propagate CB-Generated errors directly.
@@ -120,7 +120,7 @@ func stuntdoubleType(realType reflect.Type, cbs CBMap) (reflect.Type,bool,error)
         if !hasStunt { return realType,hasStunt,nil }
         return reflect.PtrTo(sdElType),hasStunt,nil
     case reflect.Interface:
-        _,has:=cbs[TypeName(realType.Name())]; if !has { return realType,false,nil }
+        _,has:=cbs[TypeName(realType.String())]; if !has { return realType,false,nil }
         return _STUNT_TYPE,true,nil
     case reflect.Array:
         sdElType,hasStunt,e:=stuntdoubleType(realType.Elem(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(array elem) error: %v",e) }
@@ -160,7 +160,7 @@ func stuntdoubleToReal(sd,real reflect.Value, cbs CBMap) error {
     sdType:=sd.Type(); realType:=real.Type()
 
     if sdType==_STUNT_TYPE {
-        if cb,has:=cbs[TypeName(realType.Name())]; has {
+        if cb,has:=cbs[TypeName(realType.String())]; has {
             i,e:=cb([]byte(sd.Interface().(StuntDouble))); if e!=nil { return cbErr{e} }
             sd=reflect.ValueOf(i); sdType=sd.Type()
         }
