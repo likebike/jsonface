@@ -1,10 +1,12 @@
-package jsonface
+package jsonface_test
 
 // This is a basic example of direct marshalling and unmarshalling of an interface.
 // In this particular example, the different shapes happen to have differently-named fields,
 // so their types can be easily detected without adding extra type information to the marshalled data.
 
 import (
+    "jsonface"
+
     "fmt"
     "math"
     "errors"
@@ -12,15 +14,15 @@ import (
 )
 
 type (
-    Shape interface { Area() float64 }
+    // type Shape interface { Area() float64 }  // Defined in common_test.go
     Circle struct { Radius float64 }
     Square struct { Length float64 }
 )
 
-func (me Circle) Area() float64 { return math.Pi*me.Radius*me.Radius }
+func (me Circle) Area() float64 { return math.Pi * me.Radius*me.Radius }
 func (me Square) Area() float64 { return me.Length*me.Length }
 
-func Shape_UnmarshalJSON(bs []byte) (interface{},error) {
+func Shape_UnmarshalJSON_1(bs []byte) (interface{},error) {
     var data map[string]float64
     err:=json.Unmarshal(bs,&data); if err!=nil { return nil,err }
     if v,has:=data["Radius"]; has {
@@ -34,11 +36,12 @@ func Shape_UnmarshalJSON(bs []byte) (interface{},error) {
     }
 }
 
-func init() {
-    AddGlobalCB("jsonface.Shape", Shape_UnmarshalJSON)
-}
+func Example_direct1() {
+    // Don't use ResetGlobalCBs in normal circumstances:
+    jsonface.ResetGlobalCBs()
+    // This would normally be placed in an init() function, but I can't do that here because it conflicts with other tests:
+    jsonface.AddGlobalCB("jsonface_test.Shape", Shape_UnmarshalJSON_1)
 
-func Example() {
     var s1 Shape = Circle{2.5}
     var s2 Shape = Square{5.0}
     fmt.Printf("Before: s1=%#v s2=%#v\n",s1,s2)
@@ -47,13 +50,13 @@ func Example() {
     s2bs,err:=json.Marshal(s2); if err!=nil { panic(err) }
     fmt.Printf("Marshalled: s1=%s s2=%s\n",s1bs,s2bs)
 
-    err=GlobalUnmarshal(s1bs,&s1); if err!=nil { panic(err) }
-    err=GlobalUnmarshal(s2bs,&s2); if err!=nil { panic(err) }
-    fmt.Printf("After: s1=%#v s2=%#v\n",s1,s2)
+    err=jsonface.GlobalUnmarshal(s1bs,&s1); if err!=nil { panic(err) }
+    err=jsonface.GlobalUnmarshal(s2bs,&s2); if err!=nil { panic(err) }
+    fmt.Printf("After : s1=%#v s2=%#v\n",s1,s2)
 
     // Output:
-    // Before: s1=jsonface.Circle{Radius:2.5} s2=jsonface.Square{Length:5}
+    // Before: s1=jsonface_test.Circle{Radius:2.5} s2=jsonface_test.Square{Length:5}
     // Marshalled: s1={"Radius":2.5} s2={"Length":5}
-    // After: s1=jsonface.Circle{Radius:2.5} s2=jsonface.Square{Length:5}
+    // After : s1=jsonface_test.Circle{Radius:2.5} s2=jsonface_test.Square{Length:5}
 }
 

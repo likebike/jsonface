@@ -8,6 +8,7 @@ package jsonface
 
 import (
     "fmt"
+    "os"
     "errors"
     "reflect"
     "encoding"
@@ -25,7 +26,11 @@ type TypeName string
 // CBMap is a TypeName-->CB mapping.  It is used to tell the jsonface system which callbacks to use for which types.
 type CBMap map[TypeName]CB
 
-// GetTypeName can help you understand the correct TypeNames to use during development.  After you understand how the TypeNames are made, you will usually just hard-code the names into your code, rather than using this function.
+// GetTypeName can help you understand the correct TypeNames to use during development.
+// After you understand how the TypeNames are made, you will usually just hard-code the
+// names into your code, rather than using this function.
+//
+// Coincidentally, this function produces the same result as fmt.Sprintf("%T",x) .
 func GetTypeName(x interface{}) TypeName {
     return TypeName(reflect.TypeOf(x).String())   // String() is more precise than Name().
 }
@@ -72,11 +77,19 @@ var globalCBs=struct {
 
 // AddGlobalCB adds an entry to the global callback registry.
 // Then, when GlobalUnmarshal() is called, this global registry will be used to perform the unmarshalling.
-// You will normally call AllGlobalCB() during program initialization (from an init() function) to register your unmarshallable types.
+// You will normally call AllGlobalCB() during program initialization (from an init() function) to register your unmarshallable interfaces.
 func AddGlobalCB(name TypeName, cb CB) {
     globalCBs.Lock(); defer globalCBs.Unlock()
     if _,has:=globalCBs.m[name]; has { panic(errors.New("CB already defined")) }
     globalCBs.m[name]=cb
+}
+
+// ResetGlobalCBs removes all definitions from the global callback registry.
+// You probably shouldn't use this -- I just need to use it from my unit tests because Go runs all tests consecutively without resetting the namespace, and so my tests conflict with eachother.  I need to use this to reset the registry between tests.
+func ResetGlobalCBs() {
+    fmt.Fprintln(os.Stderr, "Warning: You are calling ResetGlobalCBs.  This should probably only be used from the jsonface unit tests!")
+    globalCBs.Lock(); defer globalCBs.Unlock()
+    for k:=range globalCBs.m { delete(globalCBs.m,k) }
 }
 
 // GlobalUnmarshal uses the global callback registry (created by the AddGlobalCB() funcion) to unmarshal data.
