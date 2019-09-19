@@ -1,3 +1,9 @@
+// Copyright 2019 Christopher Sebastian.
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
+
+// Package jsonface enables JSON Unmarshalling into Go Interfaces.
+// This allows you to design better data types, and simplifies serialization logic.
 package jsonface
 
 import (
@@ -5,15 +11,24 @@ import (
     "errors"
     "reflect"
     "encoding"
-    stdjson "encoding/json"
+    "encoding/json"
     "sync"
 )
 
-type RawMessage=stdjson.RawMessage
-
-type CBMap map[TypeName]CB  // By mapping from TypeName to CB, it's possible to have name conflicts.  If I encounter that problem in real-life, I might change the mapping to reflect.Type-to-CB.
-type TypeName string
+// 'CB' means 'Callback'.  It is used for unmarshalling.
 type CB func([]byte) (interface{},error)
+
+// TypeName is the name of a type.  You might need to include the package name, depending on your situation.
+// If you don't know the correct TypeName to use, try the GetTypeName() function.
+type TypeName string
+
+// CBMap is a TypeName-->CB mapping.  It is used to tell the jsonface system which callbacks to use for which types.
+type CBMap map[TypeName]CB
+
+// GetTypeName can help you understand the correct TypeNames to use during development.  After you understand how the TypeNames are made, you will usually just hard-code the names into your code, rather than using this function.
+func GetTypeName(x interface{}) TypeName {
+    return TypeName(reflect.TypeOf(x).Name())
+}
 
 // We want to be able to propagate CB-Generated errors directly.
 // This cbErr type allows us to detect CB-Generated errors vs our own-generated errors:
@@ -34,6 +49,7 @@ func unwrapCBErr(e error) error {
     }
 }
 
+// StuntDouble is a type used internally within jsonface.  Users of jsonface should ignore this type.  It is an exported symbol (capitalized) for technical reasons -- an unexported symbol (lowercase) would not work.
 type StuntDouble string
 func (me StuntDouble) MarshalJSON() ([]byte,error) {
     if len(me)==0 { return []byte("null"),nil }
@@ -46,7 +62,7 @@ func (me *StuntDouble) UnmarshalJSON(bs []byte) error {
 }
 
 var _STUNT_TYPE=reflect.TypeOf(StuntDouble(""))
-var _JSON_UNMARSHALER_TYPE=reflect.TypeOf((*stdjson.Unmarshaler)(nil)).Elem()
+var _JSON_UNMARSHALER_TYPE=reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
 var _TEXT_UNMARSHALER_TYPE=reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 
 var globalCBs=struct {
@@ -54,36 +70,38 @@ var globalCBs=struct {
     m CBMap
 }{sync.RWMutex{},CBMap{}}
 
+// AddGlobalCB adds an entry to the global callback registry.
+// Then, when GlobalUnmarshal() is called, this global registry will be used to perform the unmarshalling.
+// You will normally call AllGlobalCB() during program initialization (from an init() function) to register your unmarshallable types.
 func AddGlobalCB(name TypeName, cb CB) {
     globalCBs.Lock(); defer globalCBs.Unlock()
     if _,has:=globalCBs.m[name]; has { panic(errors.New("CB already defined")) }
     globalCBs.m[name]=cb
 }
 
-func Marshal(x interface{}) ([]byte,error) { return stdjson.Marshal(x) }
-
-func StdUnmarshal(bs []byte, destPtr interface{}) error { return stdjson.Unmarshal(bs,destPtr) }
-
+// GlobalUnmarshal uses the global callback registry (created by the AddGlobalCB() funcion) to unmarshal data.
 func GlobalUnmarshal(bs []byte, destPtr interface{}) error {
     globalCBs.RLock(); defer globalCBs.RUnlock()
     return Unmarshal(bs,destPtr,globalCBs.m)
 }
 
+// Unmarshal uses the provided CBMap to perform unmarshalling.  It does not use the global callback registry.  Normally, end-users of this library will not use this function, but it is provided for extra flexibility.
 func Unmarshal(bs []byte, destPtr interface{}, cbs CBMap) error {
     destPtrV:=reflect.ValueOf(destPtr)
     if !destPtrV.IsValid() { return errors.New("invalid destPtr") }
     if destPtrV.Kind()!=reflect.Ptr { return errors.New("destPtr is not a pointer") }
     if destPtrV.IsNil() { return errors.New("nil destPtr") }
     destType:=destPtrV.Elem().Type(); if destType==nil { return errors.New("nil destType") }
-    dumType,hasStunt,e:=stuntdoubleType(destType,cbs); if e!=nil { return fmt.Errorf("stuntdoubleType error: %v",e) }
-    if !hasStunt { return stdjson.Unmarshal(bs,destPtr) }  // If no stunt was used, just fallback to standard behavior.
-    dumPtrV:=reflect.New(dumType)
-    if !dumPtrV.CanInterface() { return errors.New("cannot dumPtrV.Interface()") }
-    e=stdjson.Unmarshal(bs,dumPtrV.Interface()); if e!=nil { return fmt.Errorf("json.Unmarshal error: %v",e) }
-    e=stuntdoubleToReal(dumPtrV,destPtrV,cbs); if e!=nil { return unwrapCBErr(fmtErr("stuntdoubleToReal error: %v",e)) }
+    sdType,hasStunt,e:=stuntdoubleType(destType,cbs); if e!=nil { return fmt.Errorf("stuntdoubleType error: %v",e) }
+    if !hasStunt { return json.Unmarshal(bs,destPtr) }  // If no stunt was used, just fallback to standard behavior.
+    sdPtrV:=reflect.New(sdType)
+    if !sdPtrV.CanInterface() { return errors.New("cannot sdPtrV.Interface()") }
+    e=json.Unmarshal(bs,sdPtrV.Interface()); if e!=nil { return fmt.Errorf("json.Unmarshal error: %v",e) }
+    e=stuntdoubleToReal(sdPtrV,destPtrV,cbs); if e!=nil { return unwrapCBErr(fmtErr("stuntdoubleToReal error: %v",e)) }
     return nil
 }
 
+// stuntdoubleType transforms the given 'realType' to a StuntDouble type.  Primitive types (like int) and types that do not have an entry in the CBMap do not need transformation, and are returned directly.
 func stuntdoubleType(realType reflect.Type, cbs CBMap) (reflect.Type,bool,error) {
     if realType==nil { return nil,false,errors.New("nil realType!  If you are trying to get the type of an interface, you must use some indirection because Go discards the types of interface values at compile time.  See https://golang.org/pkg/reflect/#TypeOf .  Example: var x MyInterface; stuntdoubleType(reflect.ValueOf(&x).Elem().Type(), cbs)") }
 
@@ -98,62 +116,63 @@ func stuntdoubleType(realType reflect.Type, cbs CBMap) (reflect.Type,bool,error)
     case reflect.Bool,reflect.Int,reflect.Int8,reflect.Int16,reflect.Int32,reflect.Int64,reflect.Uint,reflect.Uint8,reflect.Uint16,reflect.Uint32,reflect.Uint64,reflect.Uintptr,reflect.Float32,reflect.Float64,reflect.Complex64,reflect.Complex128,reflect.Func,reflect.String,reflect.UnsafePointer:
         return realType,false,nil
     case reflect.Ptr:
-        dumElType,hasStunt,e:=stuntdoubleType(realType.Elem(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(ptr elem) error: %v",e) }
+        sdElType,hasStunt,e:=stuntdoubleType(realType.Elem(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(ptr elem) error: %v",e) }
         if !hasStunt { return realType,hasStunt,nil }
-        return reflect.PtrTo(dumElType),hasStunt,nil
+        return reflect.PtrTo(sdElType),hasStunt,nil
     case reflect.Interface:
         _,has:=cbs[TypeName(realType.Name())]; if !has { return realType,false,nil }
         return _STUNT_TYPE,true,nil
     case reflect.Array:
-        dumElType,hasStunt,e:=stuntdoubleType(realType.Elem(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(array elem) error: %v",e) }
+        sdElType,hasStunt,e:=stuntdoubleType(realType.Elem(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(array elem) error: %v",e) }
         if !hasStunt { return realType,hasStunt,nil }
-        return reflect.ArrayOf(realType.Len(),dumElType),hasStunt,nil
+        return reflect.ArrayOf(realType.Len(),sdElType),hasStunt,nil
     case reflect.Slice:
-        dumElType,hasStunt,e:=stuntdoubleType(realType.Elem(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(slice elem) error: %v",e) }
+        sdElType,hasStunt,e:=stuntdoubleType(realType.Elem(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(slice elem) error: %v",e) }
         if !hasStunt { return realType,hasStunt,nil }
-        return reflect.SliceOf(dumElType),hasStunt,nil
+        return reflect.SliceOf(sdElType),hasStunt,nil
     case reflect.Struct:
         // There are some pretty severe limitations of runtime struct type generation.
         // In particular, you can't creates structs with unexported fields.
         // Fortunately, this is usually OK for our use case.
         // I don't try to overcome these limitations -- I just allow StructOf() to panic.
-        var dumFields []reflect.StructField; hasStunt:=false
+        var sdFields []reflect.StructField; hasStunt:=false
         for i:=0;i<realType.NumField();i++ {
-            dumField:=realType.Field(i)
-            dumFieldType,hasD,e:=stuntdoubleType(dumField.Type,cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(struct field) error: %v : %v",dumField.Name,e) }
+            sdField:=realType.Field(i)
+            sdFieldType,hasD,e:=stuntdoubleType(sdField.Type,cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(struct field) error: %v : %v",sdField.Name,e) }
             hasStunt=hasStunt||hasD
-            dumField.Type=dumFieldType
-            dumFields=append(dumFields,dumField)
+            sdField.Type=sdFieldType
+            sdFields=append(sdFields,sdField)
         }
         if !hasStunt { return realType,hasStunt,nil }
-        return reflect.StructOf(dumFields),hasStunt,nil
+        return reflect.StructOf(sdFields),hasStunt,nil
     case reflect.Map:
-        dumKeyType,hasDK,e:=stuntdoubleType(realType.Key(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(map key) error: %v",e) }
-        dumElType,hasDE,e:=stuntdoubleType(realType.Elem(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(slice elem) error: %v",e) }
+        sdKeyType,hasDK,e:=stuntdoubleType(realType.Key(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(map key) error: %v",e) }
+        sdElType,hasDE,e:=stuntdoubleType(realType.Elem(),cbs); if e!=nil { return nil,false,fmt.Errorf("stuntdoubleType(slice elem) error: %v",e) }
         if !(hasDK || hasDE) { return realType,false,nil }
-        return reflect.MapOf(dumKeyType,dumElType),true,nil
+        return reflect.MapOf(sdKeyType,sdElType),true,nil
     case reflect.Chan: return nil,false,fmt.Errorf("Chan unmarshal not yet implemented")  // If I implement this, it could open up some interesting design possibilities...
     default: return nil,false,fmt.Errorf("Unsupported Kind: %v",realType.Kind())
     }
 }
 
-func stuntdoubleToReal(dum,real reflect.Value, cbs CBMap) error {
-    dumType:=dum.Type(); realType:=real.Type()
+// stuntdoubleToReal is the inverse of 'stuntdoubleType'.  It transforms a type containing StuntDoubles into a real type.  It uses the callbacks in CBMap to accomplish this.
+func stuntdoubleToReal(sd,real reflect.Value, cbs CBMap) error {
+    sdType:=sd.Type(); realType:=real.Type()
 
-    if dumType==_STUNT_TYPE {
+    if sdType==_STUNT_TYPE {
         if cb,has:=cbs[TypeName(realType.Name())]; has {
-            i,e:=cb([]byte(dum.Interface().(StuntDouble))); if e!=nil { return cbErr{e} }
-            dum=reflect.ValueOf(i); dumType=dum.Type()
+            i,e:=cb([]byte(sd.Interface().(StuntDouble))); if e!=nil { return cbErr{e} }
+            sd=reflect.ValueOf(i); sdType=sd.Type()
         }
     }
 
     // Unmarshalers are always implemented on pointer receivers:
-    dumPtrType:=reflect.PtrTo(dumType)
-    if dumPtrType.Implements(_JSON_UNMARSHALER_TYPE) || dumPtrType.Implements(_TEXT_UNMARSHALER_TYPE) {
+    sdPtrType:=reflect.PtrTo(sdType)
+    if sdPtrType.Implements(_JSON_UNMARSHALER_TYPE) || sdPtrType.Implements(_TEXT_UNMARSHALER_TYPE) {
         // Don't descend into this type to avoid losing the custom unmarshaling behavior which probably sets unexported fields that we wouldn't be able to access.
         if !real.CanSet() { return errors.New("cannot set 01") }
-        if !dumType.AssignableTo(realType) { return fmt.Errorf("cb result not assignable") }
-        real.Set(dum)
+        if !sdType.AssignableTo(realType) { return fmt.Errorf("cb result not assignable") }
+        real.Set(sd)
         return nil
     }
 
@@ -162,68 +181,68 @@ func stuntdoubleToReal(dum,real reflect.Value, cbs CBMap) error {
         return errors.New("invalid kind")
     case reflect.Bool,reflect.Int,reflect.Int8,reflect.Int16,reflect.Int32,reflect.Int64,reflect.Uint,reflect.Uint8,reflect.Uint16,reflect.Uint32,reflect.Uint64,reflect.Uintptr,reflect.Float32,reflect.Float64,reflect.Complex64,reflect.Complex128,reflect.Func,reflect.String,reflect.UnsafePointer:
         if !real.CanSet() { return errors.New("cannot set 02") }
-        if !dumType.AssignableTo(realType) { return fmt.Errorf("cb result not assignable") }
-        real.Set(dum)
+        if !sdType.AssignableTo(realType) { return fmt.Errorf("cb result not assignable") }
+        real.Set(sd)
         return nil
     case reflect.Ptr:
-        if dum.Kind()!=reflect.Ptr { return errors.New("Incompatible stuntdouble and real kinds") }
-        if dum.IsNil() {
+        if sd.Kind()!=reflect.Ptr { return errors.New("Incompatible stuntdouble and real kinds") }
+        if sd.IsNil() {
             if real.IsNil() { return nil }
             if !real.CanSet() { return errors.New("cannot set 03") }
-            real.Set(dum)
+            real.Set(sd)
             return nil
         }
         if real.IsNil() {
             if !real.CanSet() { return errors.New("cannot set 04") }
             real.Set(reflect.New(real.Type().Elem()))
         }
-        return stuntdoubleToReal(dum.Elem(),real.Elem(),cbs)
+        return stuntdoubleToReal(sd.Elem(),real.Elem(),cbs)
     case reflect.Interface:
         if !real.CanSet() { return errors.New("cannot set 05") }
-        if !dumType.AssignableTo(realType) { return fmt.Errorf("cb result not assignable") }
-        real.Set(dum)
+        if !sdType.AssignableTo(realType) { return fmt.Errorf("cb result not assignable") }
+        real.Set(sd)
         return nil
     case reflect.Array:
-        if dum.Kind()!=reflect.Array && dum.Kind()!=reflect.Slice { return errors.New("Incompatible stuntdouble and real kinds") }
+        if sd.Kind()!=reflect.Array && sd.Kind()!=reflect.Slice { return errors.New("Incompatible stuntdouble and real kinds") }
         rlen:=real.Len()
-        if dum.Len()!=rlen { return errors.New("unequal array lengths") }
+        if sd.Len()!=rlen { return errors.New("unequal array lengths") }
         for i:=0;i<rlen;i++ {
-            e:=stuntdoubleToReal(dum.Index(i),real.Index(i),cbs); if e!=nil { return fmtErr("array element stuntdoubleToReal error: %v",e) }
+            e:=stuntdoubleToReal(sd.Index(i),real.Index(i),cbs); if e!=nil { return fmtErr("array element stuntdoubleToReal error: %v",e) }
         }
         return nil
     case reflect.Slice:
-        if dum.Kind()!=reflect.Array && dum.Kind()!=reflect.Slice { return errors.New("Incompatible stuntdouble and real kinds") }
-        dlen:=dum.Len()
+        if sd.Kind()!=reflect.Array && sd.Kind()!=reflect.Slice { return errors.New("Incompatible stuntdouble and real kinds") }
+        dlen:=sd.Len()
         s:=reflect.MakeSlice(realType,dlen,dlen)
         for i:=0;i<dlen;i++ {
-            e:=stuntdoubleToReal(dum.Index(i),s.Index(i),cbs); if e!=nil { return fmtErr("slice element stuntdoubleToReal error: %v",e) }
+            e:=stuntdoubleToReal(sd.Index(i),s.Index(i),cbs); if e!=nil { return fmtErr("slice element stuntdoubleToReal error: %v",e) }
         }
         if !real.CanSet() { return errors.New("cannot set 06") }
         real.Set(s)
         return nil
     case reflect.Struct:
-        if dum.Kind()!=reflect.Struct { return errors.New("Incompatible stuntdouble and real kinds") }
+        if sd.Kind()!=reflect.Struct { return errors.New("Incompatible stuntdouble and real kinds") }
         rnf:=realType.NumField()
-        if dumType.NumField()!=rnf { return errors.New("unequal struct NumFields") }
+        if sdType.NumField()!=rnf { return errors.New("unequal struct NumFields") }
         for i:=0;i<rnf;i++ {
-            rf:=realType.Field(i); df:=dumType.Field(i)
+            rf:=realType.Field(i); df:=sdType.Field(i)
             if rf.Name!=df.Name { return errors.New("unequal struct field names") }
-            e:=stuntdoubleToReal(dum.Field(i),real.Field(i),cbs); if e!=nil { return fmtErr("struct field stuntdoubleToReal error: %v",e) }
+            e:=stuntdoubleToReal(sd.Field(i),real.Field(i),cbs); if e!=nil { return fmtErr("struct field stuntdoubleToReal error: %v",e) }
         }
         return nil
     case reflect.Map:
-        if dum.Kind()!=reflect.Map { return errors.New("Incompatible stuntdouble and real kinds") }
+        if sd.Kind()!=reflect.Map { return errors.New("Incompatible stuntdouble and real kinds") }
         rkeyType:=realType.Key(); rvalType:=realType.Elem()
-        m:=reflect.MakeMapWithSize(realType,dum.Len())
+        m:=reflect.MakeMapWithSize(realType,sd.Len())
 
         // More efficient way to do it in Go 1.12:
-        // iter:=dum.MapRange()
+        // iter:=sd.MapRange()
         // for iter.Next() {
         //     dk:=iter.Key(); dv:=iter.Value()
 
-        keys:=dum.MapKeys()
+        keys:=sd.MapKeys()
         for _,dk:=range keys {
-            dv:=dum.MapIndex(dk)
+            dv:=sd.MapIndex(dk)
             rk:=reflect.New(rkeyType).Elem(); rv:=reflect.New(rvalType).Elem()
             e:=stuntdoubleToReal(dk,rk,cbs); if e!=nil { return fmtErr("map key stuntdoubleToReal error: %v",e) }
             e=stuntdoubleToReal(dv,rv,cbs);  if e!=nil { return fmtErr("map val stuntdoubleToReal error: %v",e) }
