@@ -36,7 +36,7 @@ func Shape_UnmarshalJSON_1(bs []byte) (interface{},error) {
     }
 }
 
-func Example_direct1() {
+func Example_1Direct() {
     // Don't use ResetGlobalCBs in normal circumstances:
     jsonface.ResetGlobalCBs()
     // This would normally be placed in an init() function, but I can't do that here because it conflicts with other tests:

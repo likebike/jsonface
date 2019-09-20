@@ -22,21 +22,6 @@ type (
 func (me Pentagon) Area() float64 { return (1.0/4.0)*math.Sqrt(5*(5+2*math.Sqrt(5))) * me.Side*me.Side }
 func (me Hexagon) Area() float64 { return (3.0/2.0)*math.Sqrt(3) * me.Side*me.Side }
 
-func (me Pentagon) MarshalJSON() ([]byte,error) {
-    data:=struct {
-        Type string
-        Side float64
-    }{"Pentagon",me.Side}
-    return json.Marshal(data)
-}
-func (me Hexagon) MarshalJSON() ([]byte,error) {
-    data:=struct {
-        Type string
-        Side float64
-    }{"Hexagon",me.Side}
-    return json.Marshal(data)
-}
-
 func Shape_UnmarshalJSON_2(bs []byte) (interface{},error) {
     var data struct {
         Type string
@@ -52,7 +37,22 @@ func Shape_UnmarshalJSON_2(bs []byte) (interface{},error) {
     }
 }
 
-func Example_direct2() {
+func (me Pentagon) MarshalJSON() ([]byte,error) {
+    data:=struct {
+        Type string
+        Side float64
+    }{"Pentagon",me.Side}
+    return json.Marshal(data)
+}
+func (me Hexagon) MarshalJSON() ([]byte,error) {
+    data:=struct {
+        Type string
+        Side float64
+    }{"Hexagon",me.Side}
+    return json.Marshal(data)
+}
+
+func Example_2Direct() {
     // Don't use ResetGlobalCBs in normal circumstances:
     jsonface.ResetGlobalCBs()
     // This would normally be placed in an init() function, but I can't do that here because it conflicts with other tests:
