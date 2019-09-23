@@ -1,6 +1,8 @@
 package jsonface_test
 
 import (
+    "jsonface"
+
     "fmt"
     "os"
 )
@@ -9,14 +11,14 @@ type A int64
 
 func ExampleGetTypeName() {
     var i int64
-    fmt.Println("i:",GetTypeName(i))
+    fmt.Println("i:",jsonface.GetTypeName(i))
 
     var a A
-    fmt.Println("a:",GetTypeName(a))
+    fmt.Println("a:",jsonface.GetTypeName(a))
 
-    fmt.Println("&a:",GetTypeName(&a))
+    fmt.Println("&a:",jsonface.GetTypeName(&a))
 
-    fmt.Println("os.Stdout:",GetTypeName(os.Stdout))
+    fmt.Println("os.Stdout:",jsonface.GetTypeName(os.Stdout))
 
     // Output:
     // i: int64

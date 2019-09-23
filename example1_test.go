@@ -14,62 +14,43 @@ type (
     Instrument interface {
         Play()
     }
-    Bell  struct { Size float64 }
-    Drum  struct { Size float64 }
+    Bell  struct { BellPitch string }  // I am using contrived field names
+    Drum  struct { DrumSize  float64 } // to keep this example simple.
 
-    BandMember_NoJsonface struct {
+    BandMember struct {
         Name       string
         Instrument Instrument
     }
 
-    BandMember_UsingJsonface struct {
-        Name       string
-        Instrument Instrument
-    }
+    BandMember_UsingJsonface BandMember
 )
 
-func (me Bell)  Play() { fmt.Printf("Ding (%f Bell)\n", me.Size) }
-func (me Drum)  Play() { fmt.Printf("Boom (%f Drum)\n", me.Size) }
-
-// Define some custom Marshalling behavior so we can add type info:
-func (me Bell) MarshalJSON() ([]byte,error) {
-    data := struct {
-        Type string
-        Size float64
-    }{"Bell", me.Size}
-    return json.Marshal(data)
-}
-func (me Drum) MarshalJSON() ([]byte,error) {
-    data := struct {
-        Type string
-        Size float64
-    }{"Drum", me.Size}
-    return json.Marshal(data)
-}
+func (me Bell)  Play() { fmt.Printf("Ding (%s Bell)\n", me.BellPitch) }
+func (me Drum)  Play() { fmt.Printf("Boom (%f Drum)\n", me.DrumSize) }
 
 // This is the normal solution for this situation; the Instrument unmarshalling complexity
 // leaks out to the BandMember level:
-func (me *BandMember_NoJsonface) UnmarshalJSON(bs []byte) error {
+func (me *BandMember) UnmarshalJSON(bs []byte) error {
     var data struct {
         Name       string
         Instrument json.RawMessage
     }
     err := json.Unmarshal(bs, &data); if err!=nil { return err }
 
-    var InstrumentType struct { Type string }
-    err = json.Unmarshal(data.Instrument, &InstrumentType); if err!=nil { return err }
+    var Keys map[string]interface{}
+    err = json.Unmarshal(data.Instrument, &Keys); if err!=nil { return err }
 
     var InstrumentObj Instrument
-    switch InstrumentType.Type {
-    case "Bell":
+    if _,has:=Keys["BellPitch"]; has {
         var bell Bell
         err = json.Unmarshal(data.Instrument, &bell); if err!=nil { return err }
         InstrumentObj = bell
-    case "Drum":
+    } else if _,has:=Keys["DrumSize"]; has {
         var drum Drum
         err = json.Unmarshal(data.Instrument, &drum); if err!=nil { return err }
         InstrumentObj = drum
-    default: return fmt.Errorf("Unknown Instument Type: %s",data.Instrument)
+    } else {
+        return fmt.Errorf("Unknown Instument Type: %s",data.Instrument)
     }
 
     me.Name, me.Instrument = data.Name, InstrumentObj
@@ -78,20 +59,19 @@ func (me *BandMember_NoJsonface) UnmarshalJSON(bs []byte) error {
 
 // This is the jsonface version of the above function.  It contains the complexity within the Instrument type.
 func Instrument_UnmarshalJSON(bs []byte) (interface{},error) {
+    var Keys map[string]interface{}
+    err := json.Unmarshal(bs, &Keys); if err!=nil { return nil,err }
 
-    var InstrumentType struct { Type string }
-    err := json.Unmarshal(bs, &InstrumentType); if err!=nil { return nil,err }
-
-    switch InstrumentType.Type {
-    case "Bell":
+    if _,has:=Keys["BellPitch"]; has {
         var bell Bell
         err = json.Unmarshal(bs, &bell); if err!=nil { return nil,err }
         return bell,nil
-    case "Drum":
+    } else if _,has:=Keys["DrumSize"]; has {
         var drum Drum
         err = json.Unmarshal(bs, &drum); if err!=nil { return nil,err }
         return drum,nil
-    default: return nil,fmt.Errorf("Unknown Instument Type: %s",bs)
+    } else {
+        return nil,fmt.Errorf("Unknown Instument Type: %s",bs)
     }
 }
 
@@ -102,7 +82,7 @@ func init() {
 
 func Example_1BeforeAfter() {
     // An example without jsonface:
-    member1 := BandMember_NoJsonface{ "Christopher", Drum{25} }
+    member1 := BandMember{ "Christopher", Drum{25} }
     fmt.Printf("Before: member1=%#v\n",member1)
     m1bs,err := json.Marshal(member1); if err!=nil { panic(err) }
     fmt.Printf("Marshalled: member1=%s\n",m1bs)
@@ -110,7 +90,7 @@ func Example_1BeforeAfter() {
     fmt.Printf("After : member1=%#v\n",member1)
 
     // An example with jsonface:
-    member2 := BandMember_UsingJsonface{ "Gabriella", Bell{10} }
+    member2 := BandMember_UsingJsonface{ "Gabriella", Bell{"B♭"} }
     fmt.Printf("Before: member2=%#v\n",member2)
     m2bs,err := json.Marshal(member2); if err!=nil { panic(err) }
     fmt.Printf("Marshalled: member2=%s\n",m2bs)
@@ -118,11 +98,11 @@ func Example_1BeforeAfter() {
     fmt.Printf("After : member2=%#v\n",member2)
 
     // Output:
-    // Before: member1=jsonface_test.BandMember_NoJsonface{Name:"Christopher", Instrument:jsonface_test.Drum{Size:25}}
-    // Marshalled: member1={"Name":"Christopher","Instrument":{"Type":"Drum","Size":25}}
-    // After : member1=jsonface_test.BandMember_NoJsonface{Name:"Christopher", Instrument:jsonface_test.Drum{Size:25}}
-    // Before: member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Instrument:jsonface_test.Bell{Size:10}}
-    // Marshalled: member2={"Name":"Gabriella","Instrument":{"Type":"Bell","Size":10}}
-    // After : member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Instrument:jsonface_test.Bell{Size:10}}
+    // Before: member1=jsonface_test.BandMember{Name:"Christopher", Instrument:jsonface_test.Drum{DrumSize:25}}
+    // Marshalled: member1={"Name":"Christopher","Instrument":{"DrumSize":25}}
+    // After : member1=jsonface_test.BandMember{Name:"Christopher", Instrument:jsonface_test.Drum{DrumSize:25}}
+    // Before: member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Instrument:jsonface_test.Bell{BellPitch:"B♭"}}
+    // Marshalled: member2={"Name":"Gabriella","Instrument":{"BellPitch":"B♭"}}
+    // After : member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Instrument:jsonface_test.Bell{BellPitch:"B♭"}}
 }
 
