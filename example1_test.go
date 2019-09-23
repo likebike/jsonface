@@ -1,62 +1,128 @@
 package jsonface_test
 
-// This is a basic example of direct marshalling and unmarshalling of an interface.
-// In this particular example, the different shapes happen to have differently-named fields,
-// so their types can be easily detected without adding extra type information to the marshalled data.
+// This example shows how you might normally design your data types and serialization
+// logic without jsonface, and then it shows how to do the same thing with jsonface.
 
 import (
     "jsonface"
 
     "fmt"
-    "math"
-    "errors"
     "encoding/json"
 )
 
 type (
-    // type Shape interface { Area() float64 }  // Defined in common_test.go
-    Circle struct { Radius float64 }
-    Square struct { Length float64 }
+    Instrument interface {
+        Play()
+    }
+    Bell  struct { Size float64 }
+    Drum  struct { Size float64 }
+
+    BandMember_NoJsonface struct {
+        Name       string
+        Instrument Instrument
+    }
+
+    BandMember_UsingJsonface struct {
+        Name       string
+        Instrument Instrument
+    }
 )
 
-func (me Circle) Area() float64 { return math.Pi * me.Radius*me.Radius }
-func (me Square) Area() float64 { return me.Length*me.Length }
+func (me Bell)  Play() { fmt.Printf("Ding (%f Bell)\n", me.Size) }
+func (me Drum)  Play() { fmt.Printf("Boom (%f Drum)\n", me.Size) }
 
-func Shape_UnmarshalJSON_1(bs []byte) (interface{},error) {
-    var data map[string]float64
-    err:=json.Unmarshal(bs,&data); if err!=nil { return nil,err }
-    if v,has:=data["Radius"]; has {
-        if v<0 { return nil,errors.New("Negative Radius") }
-        return Circle{v},nil
-    } else if v,has:=data["Length"]; has {
-        if v<0 { return nil,errors.New("Negative Length") }
-        return Square{v},nil
-    } else {
-        return nil,fmt.Errorf("Unknown Shape Type: %s",bs)
+// Define some custom Marshalling behavior so we can add type info:
+func (me Bell) MarshalJSON() ([]byte,error) {
+    data := struct {
+        Type string
+        Size float64
+    }{"Bell", me.Size}
+    return json.Marshal(data)
+}
+func (me Drum) MarshalJSON() ([]byte,error) {
+    data := struct {
+        Type string
+        Size float64
+    }{"Drum", me.Size}
+    return json.Marshal(data)
+}
+
+// This is the normal solution for this situation; the Instrument unmarshalling complexity
+// leaks out to the BandMember level:
+func (me *BandMember_NoJsonface) UnmarshalJSON(bs []byte) error {
+    var data struct {
+        Name       string
+        Instrument json.RawMessage
+    }
+    err := json.Unmarshal(bs, &data); if err!=nil { return err }
+
+    var InstrumentType struct { Type string }
+    err = json.Unmarshal(data.Instrument, &InstrumentType); if err!=nil { return err }
+
+    var InstrumentObj Instrument
+    switch InstrumentType.Type {
+    case "Bell":
+        var bell Bell
+        err = json.Unmarshal(data.Instrument, &bell); if err!=nil { return err }
+        InstrumentObj = bell
+    case "Drum":
+        var drum Drum
+        err = json.Unmarshal(data.Instrument, &drum); if err!=nil { return err }
+        InstrumentObj = drum
+    default: return fmt.Errorf("Unknown Instument Type: %s",data.Instrument)
+    }
+
+    me.Name, me.Instrument = data.Name, InstrumentObj
+    return nil
+}
+
+// This is the jsonface version of the above function.  It contains the complexity within the Instrument type.
+func Instrument_UnmarshalJSON(bs []byte) (interface{},error) {
+
+    var InstrumentType struct { Type string }
+    err := json.Unmarshal(bs, &InstrumentType); if err!=nil { return nil,err }
+
+    switch InstrumentType.Type {
+    case "Bell":
+        var bell Bell
+        err = json.Unmarshal(bs, &bell); if err!=nil { return nil,err }
+        return bell,nil
+    case "Drum":
+        var drum Drum
+        err = json.Unmarshal(bs, &drum); if err!=nil { return nil,err }
+        return drum,nil
+    default: return nil,fmt.Errorf("Unknown Instument Type: %s",bs)
     }
 }
 
-func Example_1Direct() {
-    // Don't use ResetGlobalCBs in normal circumstances:
-    jsonface.ResetGlobalCBs()
-    // This would normally be placed in an init() function, but I can't do that here because it conflicts with other tests:
-    jsonface.AddGlobalCB("jsonface_test.Shape", Shape_UnmarshalJSON_1)
+// Register the jsonface callback:
+func init() {
+    jsonface.AddGlobalCB("jsonface_test.Instrument", Instrument_UnmarshalJSON)
+}
 
-    var s1 Shape = Circle{2.5}
-    var s2 Shape = Square{5.0}
-    fmt.Printf("Before: s1=%#v s2=%#v\n",s1,s2)
+func Example_1BeforeAfter() {
+    // An example without jsonface:
+    member1 := BandMember_NoJsonface{ "Christopher", Drum{25} }
+    fmt.Printf("Before: member1=%#v\n",member1)
+    m1bs,err := json.Marshal(member1); if err!=nil { panic(err) }
+    fmt.Printf("Marshalled: member1=%s\n",m1bs)
+    err = json.Unmarshal(m1bs,&member1); if err!=nil { panic(err) }
+    fmt.Printf("After : member1=%#v\n",member1)
 
-    s1bs,err:=json.Marshal(s1); if err!=nil { panic(err) }
-    s2bs,err:=json.Marshal(s2); if err!=nil { panic(err) }
-    fmt.Printf("Marshalled: s1=%s s2=%s\n",s1bs,s2bs)
-
-    err=jsonface.GlobalUnmarshal(s1bs,&s1); if err!=nil { panic(err) }
-    err=jsonface.GlobalUnmarshal(s2bs,&s2); if err!=nil { panic(err) }
-    fmt.Printf("After : s1=%#v s2=%#v\n",s1,s2)
+    // An example with jsonface:
+    member2 := BandMember_UsingJsonface{ "Gabriella", Bell{10} }
+    fmt.Printf("Before: member2=%#v\n",member2)
+    m2bs,err := json.Marshal(member2); if err!=nil { panic(err) }
+    fmt.Printf("Marshalled: member2=%s\n",m2bs)
+    err = jsonface.GlobalUnmarshal(m2bs,&member2); if err!=nil { panic(err) }
+    fmt.Printf("After : member2=%#v\n",member2)
 
     // Output:
-    // Before: s1=jsonface_test.Circle{Radius:2.5} s2=jsonface_test.Square{Length:5}
-    // Marshalled: s1={"Radius":2.5} s2={"Length":5}
-    // After : s1=jsonface_test.Circle{Radius:2.5} s2=jsonface_test.Square{Length:5}
+    // Before: member1=jsonface_test.BandMember_NoJsonface{Name:"Christopher", Instrument:jsonface_test.Drum{Size:25}}
+    // Marshalled: member1={"Name":"Christopher","Instrument":{"Type":"Drum","Size":25}}
+    // After : member1=jsonface_test.BandMember_NoJsonface{Name:"Christopher", Instrument:jsonface_test.Drum{Size:25}}
+    // Before: member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Instrument:jsonface_test.Bell{Size:10}}
+    // Marshalled: member2={"Name":"Gabriella","Instrument":{"Type":"Bell","Size":10}}
+    // After : member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Instrument:jsonface_test.Bell{Size:10}}
 }
 

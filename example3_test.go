@@ -1,188 +1,78 @@
 package jsonface_test
 
-// In this example, we show that jsonface supports unmarshalling of interfaces
-// that are stored in arbitrary composite types, such as structs, slices, and maps.
-// jsonface is completely recursive and general, so every data type is supported, no matter how complex.
+// This is another example of direct marshalling and unmarshalling of an interface.
+// In this example, the shapes have fields with the same name, therefore we need to
+// add some extra type information during marshalling.
 
 import (
     "jsonface"
 
     "fmt"
+    "math"
+    "errors"
     "encoding/json"
 )
 
 type (
-    Food interface{}
-
-    Water      struct{}
-    Ice        Water               // Water can transform into Ice.
-    Grass      struct{W Water}     // A Grass consumes 1 Water.
-    Corn       struct{Ws []Water}  // A Corn consumes multiple Waters.
-    Cornflakes struct{C Corn}      // Cornflakes is made of Corn.
-    Cow        struct {            // Cow is a Food that also eats Foods.
-                   Name string
-                   Ate  []Food
-               }
-    Milk       struct{}
-    Cream      Milk     // Milk can transform into Cream.
-    IceCream   struct { // IceCream consumes 1 Ice and 1 Cream.
-                   I Ice
-                   C Cream
-               }
-    MealName   string   // Breakfast, Lunch, Dinner, etc.
-    Girl       struct {
-                   Name  string
-                   Meals map[MealName][]Food
-               }
+    // type Shape interface { Area() float64 }  // Defined in common_test.go
+    Pentagon struct { Side float64 }
+    Hexagon  struct { Side float64 }
 )
 
-func Food_UnmarshalJSON(bs []byte) (interface{},error) {
-    var data struct { Type string }
+func (me Pentagon) Area() float64 { return (1.0/4.0)*math.Sqrt(5*(5+2*math.Sqrt(5))) * me.Side*me.Side }
+func (me Hexagon) Area() float64 { return (3.0/2.0)*math.Sqrt(3) * me.Side*me.Side }
+
+func Shape_UnmarshalJSON_2(bs []byte) (interface{},error) {
+    var data struct {
+        Type string
+        Side float64
+    }
     err:=json.Unmarshal(bs,&data); if err!=nil { return nil,err }
+    if data.Side<0 { return nil,errors.New("Negative Side") }
 
     switch data.Type {
-    case "Water": return Water{},nil
-    case "Ice": return Ice{},nil
-    case "Grass":
-        var x Grass
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
-        return x,nil
-    case "Corn":
-        var x Corn
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
-        return x,nil
-    case "Cornflakes":
-        var x Cornflakes
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
-        return x,nil
-    case "Cow":
-        // The Cow type contains nested Food interfaces which must also be unmarshalled.
-        type X Cow  // Use indirection to avoid infinite recursion.
-        var x X
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
-        return Cow(x),nil
-    case "Milk": return Milk{},nil
-    case "Cream": return Cream{},nil
-    case "IceCream":
-        var x IceCream
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
-        return x,nil
-    default: return nil,fmt.Errorf("Unknown Food Type: %s",bs)
+    case "Pentagon": return Pentagon{data.Side},nil
+    case "Hexagon": return Hexagon{data.Side},nil
+    default: return nil,fmt.Errorf("Unknown Shape Type: %s",bs)
     }
 }
 
-func (me Water) MarshalJSON() ([]byte,error) {
-    data:=struct{Type string}{"Water"}
-    return json.Marshal(data)
-}
-func (me Ice) MarshalJSON() ([]byte,error) {
-    data:=struct{Type string}{"Ice"}
-    return json.Marshal(data)
-}
-func (me Grass) MarshalJSON() ([]byte,error) {
-    data:=struct{
+func (me Pentagon) MarshalJSON() ([]byte,error) {
+    data:=struct {
         Type string
-        W    Water
-    }{"Grass",me.W}
+        Side float64
+    }{"Pentagon",me.Side}
     return json.Marshal(data)
 }
-func (me Corn) MarshalJSON() ([]byte,error) {
-    data:=struct{
+func (me Hexagon) MarshalJSON() ([]byte,error) {
+    data:=struct {
         Type string
-        Ws   []Water
-    }{"Corn",me.Ws}
-    return json.Marshal(data)
-}
-func (me Cornflakes) MarshalJSON() ([]byte,error) {
-    data:=struct{
-        Type string
-        C    Corn
-    }{"Cornflakes",me.C}
-    return json.Marshal(data)
-}
-func (me Cow) MarshalJSON() ([]byte,error) {
-    data:=struct{
-        Type string
-        Name string
-        Ate  []Food
-    }{"Cow",me.Name,me.Ate}
-    return json.Marshal(data)
-}
-func (me Milk) MarshalJSON() ([]byte,error) {
-    data:=struct{Type string}{"Milk"}
-    return json.Marshal(data)
-}
-func (me Cream) MarshalJSON() ([]byte,error) {
-    data:=struct{Type string}{"Cream"}
-    return json.Marshal(data)
-}
-func (me IceCream) MarshalJSON() ([]byte,error) {
-    data:=struct{
-        Type string
-        I    Ice
-        C    Cream
-    }{"IceCream",me.I,me.C}
+        Side float64
+    }{"Hexagon",me.Side}
     return json.Marshal(data)
 }
 
-func Example_3Composites() {
-    // Don't use ResetGlobalCBs in normal circumstances:
+func Example_3Direct() {
+    // Don't use ResetGlobalCBs in normal circumstances.  We need to use it here so our tests don't conflict:
     jsonface.ResetGlobalCBs()
-    // These would normally be placed in an init() function, but I can't do that here because it conflicts with other tests:
-    jsonface.AddGlobalCB("jsonface_test.Food", Food_UnmarshalJSON)
+    // This would normally be placed in an init() function, but I can't do that here because it conflicts with other tests:
+    jsonface.AddGlobalCB("jsonface_test.Shape", Shape_UnmarshalJSON_2)
 
-    // It rains.  10 Waters are produced:
-    waters:=make([]Water,10)
-    water:=func() (w Water) {
-        w,waters=waters[len(waters)-1],waters[:len(waters)-1]
-        return
-    }
+    var s1 Shape = Pentagon{5}
+    var s2 Shape = Hexagon{5}
+    fmt.Printf("Before: s1=%#v s2=%#v\n",s1,s2)
 
-    // Some Grass and Corn grows:
-    grass:=Grass{water()}
-    corn1:=Corn{[]Water{ water(),water() }}
-    corn2:=Corn{[]Water{ water(),water(),water() }}
+    s1bs,err:=json.Marshal(s1); if err!=nil { panic(err) }
+    s2bs,err:=json.Marshal(s2); if err!=nil { panic(err) }
+    fmt.Printf("Marshalled: s1=%s s2=%s\n",s1bs,s2bs)
 
-    // One Corn is turned into Cornflakes:
-    cornflakes:=Cornflakes{corn1}
-
-    // The cow eats Grass, Corn, and Water:
-    cow:=Cow{"Bessie", []Food{ grass,corn2,water() }}
-
-    // The cow produces one Milk for each Food it ate:
-    milks:=make([]Milk,len(cow.Ate))
-    milk:=func() (m Milk) {
-        m,milks=milks[len(milks)-1],milks[:len(milks)-1]
-        return
-    }
-
-    // One Milk is turned into Cream:
-    cream:=Cream(milk())
-
-    // One Water is turned into Ice:
-    ice:=Ice(water())
-
-    // Make IceCream:
-    icecream:=IceCream{ice,cream}
-
-    // Gabriella eats cereal for breakfast, icecream for lunch, and steak for dinner:
-    gabriella:=Girl{"Gabriella", map[MealName][]Food{
-        "Breakfast":{ cornflakes,milk() },
-        "Lunch":{ icecream,water() },
-        "Dinner":{ cow,milk() },
-    }}
-    fmt.Printf("Before: gabriella=%#v\n",gabriella)
-
-    bs,err:=json.Marshal(gabriella); if err!=nil { panic(err) }
-    fmt.Printf("Marshalled: gabriella=%s\n",bs)
-
-    err=jsonface.GlobalUnmarshal(bs,&gabriella); if err!=nil { panic(err) }
-    fmt.Printf("After : gabriella=%#v\n",gabriella)
+    err=jsonface.GlobalUnmarshal(s1bs,&s1); if err!=nil { panic(err) }
+    err=jsonface.GlobalUnmarshal(s2bs,&s2); if err!=nil { panic(err) }
+    fmt.Printf("After : s1=%#v s2=%#v\n",s1,s2)
 
     // Output:
-    // Before: gabriella=jsonface_test.Girl{Name:"Gabriella", Meals:map[jsonface_test.MealName][]jsonface_test.Food{"Breakfast":[]jsonface_test.Food{jsonface_test.Cornflakes{C:jsonface_test.Corn{Ws:[]jsonface_test.Water{jsonface_test.Water{}, jsonface_test.Water{}}}}, jsonface_test.Milk{}}, "Dinner":[]jsonface_test.Food{jsonface_test.Cow{Name:"Bessie", Ate:[]jsonface_test.Food{jsonface_test.Grass{W:jsonface_test.Water{}}, jsonface_test.Corn{Ws:[]jsonface_test.Water{jsonface_test.Water{}, jsonface_test.Water{}, jsonface_test.Water{}}}, jsonface_test.Water{}}}, jsonface_test.Milk{}}, "Lunch":[]jsonface_test.Food{jsonface_test.IceCream{I:jsonface_test.Ice{}, C:jsonface_test.Cream{}}, jsonface_test.Water{}}}}
-    // Marshalled: gabriella={"Name":"Gabriella","Meals":{"Breakfast":[{"Type":"Cornflakes","C":{"Type":"Corn","Ws":[{"Type":"Water"},{"Type":"Water"}]}},{"Type":"Milk"}],"Dinner":[{"Type":"Cow","Name":"Bessie","Ate":[{"Type":"Grass","W":{"Type":"Water"}},{"Type":"Corn","Ws":[{"Type":"Water"},{"Type":"Water"},{"Type":"Water"}]},{"Type":"Water"}]},{"Type":"Milk"}],"Lunch":[{"Type":"IceCream","I":{"Type":"Ice"},"C":{"Type":"Cream"}},{"Type":"Water"}]}}
-    // After : gabriella=jsonface_test.Girl{Name:"Gabriella", Meals:map[jsonface_test.MealName][]jsonface_test.Food{"Breakfast":[]jsonface_test.Food{jsonface_test.Cornflakes{C:jsonface_test.Corn{Ws:[]jsonface_test.Water{jsonface_test.Water{}, jsonface_test.Water{}}}}, jsonface_test.Milk{}}, "Dinner":[]jsonface_test.Food{jsonface_test.Cow{Name:"Bessie", Ate:[]jsonface_test.Food{jsonface_test.Grass{W:jsonface_test.Water{}}, jsonface_test.Corn{Ws:[]jsonface_test.Water{jsonface_test.Water{}, jsonface_test.Water{}, jsonface_test.Water{}}}, jsonface_test.Water{}}}, jsonface_test.Milk{}}, "Lunch":[]jsonface_test.Food{jsonface_test.IceCream{I:jsonface_test.Ice{}, C:jsonface_test.Cream{}}, jsonface_test.Water{}}}}
+    // Before: s1=jsonface_test.Pentagon{Side:5} s2=jsonface_test.Hexagon{Side:5}
+    // Marshalled: s1={"Type":"Pentagon","Side":5} s2={"Type":"Hexagon","Side":5}
+    // After : s1=jsonface_test.Pentagon{Side:5} s2=jsonface_test.Hexagon{Side:5}
 }
-
 

@@ -3,7 +3,36 @@
 // that can be found in the LICENSE file.
 
 // Package jsonface enables JSON Unmarshalling into Go Interfaces.
-// This allows you to design better data types, and simplifies serialization logic.
+// This enables you to isolate your data type design from your deserialization logic.
+//
+// When writing Go programs, I often want to create types that contain interface members like this:
+//
+//     type (
+//         Instrument interface {
+//             Play()
+//         }
+//         Bell  struct { Size float64 }
+//         Drum  struct { Size float64 }
+//         
+//         BandMember struct {
+//             Name       string
+//             Instrument Instrument
+//         }
+//     )
+//
+// ...But if I want to serialize/deserialize a BandMember using JSON, I'm going
+// to have a bit of a problem because I can't unmarshal into an interface.  Therefore,
+// I need to define some custom unmarshalling logic at the BandMember level.  This is
+// not ideal, since the logic should really belong to Instrument, not BandMember.
+// It becomes especially problematic if I have other data types that also contain
+// Instrument members because then the unmarshalling complexity spreads there too!
+//
+// This jsonface package enables me to define the unmarshalling logic at the Instrument
+// level, avoiding the leaky-complexity described above.
+//
+// Also note, the example above just shows a very simple interface struct field, but jsonface is very general; It can handle any data structure, no matter how deep or complex.
+//
+// See the examples below:
 package jsonface
 
 import (
@@ -19,7 +48,7 @@ import (
 // 'CB' means 'Callback'.  It is used for unmarshalling, exactly like an UnmarshalJSON method.
 type CB func([]byte) (interface{},error)
 
-// TypeName is the name of a type.  You might need to include the package name, depending on your situation.
+// TypeName is the name of a type (usually prefixed by the package name).
 // If you don't know the correct TypeName to use, try the GetTypeName() function.
 type TypeName string
 
@@ -54,7 +83,7 @@ func unwrapCBErr(e error) error {
     }
 }
 
-// StuntDouble is a type used internally within jsonface.  Users of jsonface should ignore this type.  It is an exported symbol (capitalized) for technical reasons -- an unexported symbol (lowercase) would not work.
+// StuntDouble is a type used internally within jsonface.  Users of jsonface should ignore this type.  It is an exported symbol (capitalized) for technical reasons -- the Go json unmarshaller requires destination types to be exported; an unexported symbol (lowercase) would not work.  I apologize for the API noise.
 type StuntDouble string
 func (me StuntDouble) MarshalJSON() ([]byte,error) {
     if len(me)==0 { return []byte("null"),nil }
@@ -77,7 +106,7 @@ var globalCBs=struct {
 
 // AddGlobalCB adds an entry to the global callback registry.
 // Then, when GlobalUnmarshal() is called, this global registry will be used to perform the unmarshalling.
-// You will normally call AllGlobalCB() during program initialization (from an init() function) to register your unmarshallable interfaces.
+// You will normally call AddGlobalCB() during program initialization (from an init() function) to register your unmarshallable interfaces.
 func AddGlobalCB(name TypeName, cb CB) {
     globalCBs.Lock(); defer globalCBs.Unlock()
     if _,has:=globalCBs.m[name]; has { panic(errors.New("CB already defined")) }
@@ -86,6 +115,8 @@ func AddGlobalCB(name TypeName, cb CB) {
 
 // ResetGlobalCBs removes all definitions from the global callback registry.
 // You probably shouldn't use this -- I just need to use it from my unit tests because Go runs all tests consecutively without resetting the namespace, and so my tests conflict with eachother.  I need to use this to reset the registry between tests.
+//
+// If you think you need this, instead consider using Unmarshal() and passing in your own CBMap.
 func ResetGlobalCBs() {
     fmt.Fprintln(os.Stderr, "Warning: You are calling ResetGlobalCBs.  This should probably only be used from the jsonface unit tests!")
     globalCBs.Lock(); defer globalCBs.Unlock()
@@ -98,7 +129,7 @@ func GlobalUnmarshal(bs []byte, destPtr interface{}) error {
     return Unmarshal(bs,destPtr,globalCBs.m)
 }
 
-// Unmarshal uses the provided CBMap to perform unmarshalling.  It does not use the global callback registry.  Normally, end-users of this library will not use this function, but it is provided for extra flexibility.
+// Unmarshal uses the provided CBMap to perform unmarshalling.  It does not use the global callback registry.  Most users will want to use GlobalUnmarshal() instead, but this function is provided for extra flexibility in advanced situations.
 func Unmarshal(bs []byte, destPtr interface{}, cbs CBMap) error {
     destPtrV:=reflect.ValueOf(destPtr)
     if !destPtrV.IsValid() { return errors.New("invalid destPtr") }

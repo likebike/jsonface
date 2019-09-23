@@ -1,4 +1,4 @@
-package jsonface
+package jsonface_test
 
 import (
     "fmt"
@@ -20,8 +20,8 @@ func ExampleGetTypeName() {
 
     // Output:
     // i: int64
-    // a: jsonface.A
-    // &a: *jsonface.A
+    // a: jsonface_test.A
+    // &a: *jsonface_test.A
     // os.Stdout: *os.File
 }
 
