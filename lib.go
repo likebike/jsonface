@@ -16,14 +16,14 @@
 //         
 //         BandMember struct {
 //             Name       string
-//             Instrument Instrument
+//             Instrument Instrument    // <---- Interface Member
 //         }
 //     )
 //
 // ...But if I want to serialize/deserialize a BandMember using JSON, I'm going
-// to have a bit of a problem because I can't unmarshal into an interface.  Therefore,
-// I need to define some custom unmarshalling logic at the BandMember level.  This is
-// not ideal, since the logic should really belong to Instrument, not BandMember.
+// to have a bit of a problem because Go's json package can't unmarshal into an interface.
+// Therefore, I need to define some custom unmarshalling logic at the BandMember level.
+// This is not ideal, since the logic should really belong to Instrument, not BandMember.
 // It becomes especially problematic if I have other data types that also contain
 // Instrument members because then the unmarshalling complexity spreads there too!
 //
