@@ -53,9 +53,11 @@ func (me Hexagon) MarshalJSON() ([]byte,error) {
 }
 
 func Example_3Direct() {
-    // Don't use ResetGlobalCBs in normal circumstances.  We need to use it here so our tests don't conflict:
+    // Don't use ResetGlobalCBs in normal circumstances.  We need to use it here
+    // so our tests don't conflict:
     jsonface.ResetGlobalCBs()
-    // This would normally be placed in an init() function, but I can't do that here because it conflicts with other tests:
+    // This would normally be placed in an init() function, but I can't do that
+    // here because it conflicts with other tests:
     jsonface.AddGlobalCB("jsonface_test.Shape", Shape_UnmarshalJSON_2)
 
     var s1 Shape = Pentagon{5}

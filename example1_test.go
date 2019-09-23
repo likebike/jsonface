@@ -1,7 +1,8 @@
 package jsonface_test
 
-// This example shows how you might normally design your data types and serialization
-// logic without jsonface, and then it shows how to do the same thing with jsonface.
+// This example shows how you might normally design your data types and
+// serialization logic without jsonface, and then it shows how to do the
+// same thing with jsonface.
 
 import (
     "jsonface"
@@ -28,8 +29,8 @@ type (
 func (me Bell)  Play() { fmt.Printf("Ding (%s Bell)\n", me.BellPitch) }
 func (me Drum)  Play() { fmt.Printf("Boom (%f Drum)\n", me.DrumSize) }
 
-// This is the normal solution for this situation; the Instrument unmarshalling complexity
-// leaks out to the BandMember level:
+// This is the normal solution for this situation; the Instrument unmarshalling
+// complexity leaks out to the BandMember level:
 func (me *BandMember) UnmarshalJSON(bs []byte) error {
     var data struct {
         Name       string
@@ -57,7 +58,8 @@ func (me *BandMember) UnmarshalJSON(bs []byte) error {
     return nil
 }
 
-// This is the jsonface version of the above function.  It contains the complexity within the Instrument type.
+// This is the jsonface version of the above function.  It contains the complexity
+// within the Instrument type.
 func Instrument_UnmarshalJSON(bs []byte) (interface{},error) {
     var Keys map[string]interface{}
     err := json.Unmarshal(bs, &Keys); if err!=nil { return nil,err }

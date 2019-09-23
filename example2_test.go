@@ -1,8 +1,9 @@
 package jsonface_test
 
 // This is a basic example of direct marshalling and unmarshalling of an interface.
-// In this particular example, the different shapes happen to have differently-named fields,
-// so their types can be easily detected without adding extra type information to the marshalled data.
+// In this particular example, the different shapes happen to have differently-
+// named fields, so their types can be easily detected without adding extra type
+// information to the marshalled data.
 
 import (
     "jsonface"
@@ -37,9 +38,11 @@ func Shape_UnmarshalJSON_1(bs []byte) (interface{},error) {
 }
 
 func Example_2Direct() {
-    // Don't use ResetGlobalCBs in normal circumstances.  We need to use it here so our tests don't conflict:
+    // Don't use ResetGlobalCBs in normal circumstances.  We need to use it here
+    // so our tests don't conflict:
     jsonface.ResetGlobalCBs()
-    // This would normally be placed in an init() function, but I can't do that here because it conflicts with other tests:
+    // This would normally be placed in an init() function, but I can't do that
+    // here because it conflicts with other tests:
     jsonface.AddGlobalCB("jsonface_test.Shape", Shape_UnmarshalJSON_1)
 
     var s1 Shape = Circle{2.5}

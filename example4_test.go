@@ -2,7 +2,8 @@ package jsonface_test
 
 // In this example, we show that jsonface supports unmarshalling of interfaces
 // that are stored in arbitrary composite types, such as structs, slices, and maps.
-// jsonface is completely recursive and general, so every data type is supported, no matter how complex.
+// jsonface is completely recursive and general, so every data type is supported,
+// no matter how complex.
 
 import (
     "jsonface"
@@ -126,9 +127,11 @@ func (me IceCream) MarshalJSON() ([]byte,error) {
 }
 
 func Example_4Composites() {
-    // Don't use ResetGlobalCBs in normal circumstances.  We need to use it here so our tests don't conflict:
+    // Don't use ResetGlobalCBs in normal circumstances.  We need to use it here
+    // so our tests don't conflict:
     jsonface.ResetGlobalCBs()
-    // These would normally be placed in an init() function, but I can't do that here because it conflicts with other tests:
+    // These would normally be placed in an init() function, but I can't do that
+    // here because it conflicts with other tests:
     jsonface.AddGlobalCB("jsonface_test.Food", Food_UnmarshalJSON)
 
     // It rains.  10 Waters are produced:
@@ -184,5 +187,4 @@ func Example_4Composites() {
     // Marshalled: gabriella={"Name":"Gabriella","Meals":{"Breakfast":[{"Type":"Cornflakes","C":{"Type":"Corn","Ws":[{"Type":"Water"},{"Type":"Water"}]}},{"Type":"Milk"}],"Dinner":[{"Type":"Cow","Name":"Bessie","Ate":[{"Type":"Grass","W":{"Type":"Water"}},{"Type":"Corn","Ws":[{"Type":"Water"},{"Type":"Water"},{"Type":"Water"}]},{"Type":"Water"}]},{"Type":"Milk"}],"Lunch":[{"Type":"IceCream","I":{"Type":"Ice"},"C":{"Type":"Cream"}},{"Type":"Water"}]}}
     // After : gabriella=jsonface_test.Girl{Name:"Gabriella", Meals:map[jsonface_test.MealName][]jsonface_test.Food{"Breakfast":[]jsonface_test.Food{jsonface_test.Cornflakes{C:jsonface_test.Corn{Ws:[]jsonface_test.Water{jsonface_test.Water{}, jsonface_test.Water{}}}}, jsonface_test.Milk{}}, "Dinner":[]jsonface_test.Food{jsonface_test.Cow{Name:"Bessie", Ate:[]jsonface_test.Food{jsonface_test.Grass{W:jsonface_test.Water{}}, jsonface_test.Corn{Ws:[]jsonface_test.Water{jsonface_test.Water{}, jsonface_test.Water{}, jsonface_test.Water{}}}, jsonface_test.Water{}}}, jsonface_test.Milk{}}, "Lunch":[]jsonface_test.Food{jsonface_test.IceCream{I:jsonface_test.Ice{}, C:jsonface_test.Cream{}}, jsonface_test.Water{}}}}
 }
-
 
