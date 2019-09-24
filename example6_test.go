@@ -2,17 +2,6 @@ package jsonface_test
 
 // This example shows how to use the jsonface.Unmarshal() function directly for
 // advanced situations.  For normal cases, you'd use jsonface.GlobalUnmarshal() instead.
-//
-// Some "advanced situations" where you might want to use Unmarshal() are:
-//
-//     * You want to unmarshal many objects in parallel.  (GlobalUnmarshal
-//       uses a lock, and therefore only processes items in series.)
-//
-//     * You only want the callback registration to be temporary.
-//
-//     * You are creating and *destroying* types dynamically.
-//
-//     * You need to avoid name collisions.  (Not usually a problem.)
 
 import (
     "jsonface"

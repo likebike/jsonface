@@ -147,6 +147,17 @@ func GlobalUnmarshal(bs []byte, destPtr interface{}) error {
 // the global callback registry.  Most users will want to use GlobalUnmarshal()
 // instead, but this function is provided for extra flexibility in advanced
 // situations.
+//
+// Some "advanced situations" where you might want to use Unmarshal() are:
+//
+//     * You want to unmarshal many objects in parallel.  (GlobalUnmarshal
+//       uses a lock, and therefore only processes items in series.)
+//
+//     * You only want the callback registration to be temporary.
+//
+//     * You are creating and *destroying* types dynamically.
+//
+//     * You need to avoid name collisions.  (Not usually a problem.)
 func Unmarshal(bs []byte, destPtr interface{}, cbs CBMap) error {
     destPtrV:=reflect.ValueOf(destPtr)
     if !destPtrV.IsValid() { return errors.New("invalid destPtr") }
