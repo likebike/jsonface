@@ -15,3 +15,11 @@
 *.swp
 *.swo
 
+# Website build tools
+/PyHPy/
+/muck/
+
+# Build results
+/.1-input.list
+/2-buildarea/
+/3-output/
