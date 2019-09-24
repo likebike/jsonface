@@ -1,4 +1,4 @@
-This is the source code for the static jsonface website.
+This is the rendered static jsonface website.
 
-It uses https://github.com/likebike/PyHPy and https://github.com/likebike/muck .
+The source code is in the 'website' branch.
 
