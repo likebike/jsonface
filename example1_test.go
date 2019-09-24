@@ -19,8 +19,8 @@ type (
     Drum  struct { DrumSize  float64 } // to keep this example simple.
 
     BandMember struct {
-        Name       string
-        Instrument Instrument
+        Name string
+        Inst Instrument
     }
 
     BandMember_UsingJsonface BandMember
@@ -33,28 +33,28 @@ func (me Drum)  Play() { fmt.Printf("Boom (%f Drum)\n", me.DrumSize) }
 // complexity leaks out to the BandMember level:
 func (me *BandMember) UnmarshalJSON(bs []byte) error {
     var data struct {
-        Name       string
-        Instrument json.RawMessage
+        Name string
+        Inst json.RawMessage
     }
     err := json.Unmarshal(bs, &data); if err!=nil { return err }
 
     var Keys map[string]interface{}
-    err = json.Unmarshal(data.Instrument, &Keys); if err!=nil { return err }
+    err = json.Unmarshal(data.Inst, &Keys); if err!=nil { return err }
 
     var InstrumentObj Instrument
     if _,has:=Keys["BellPitch"]; has {
         var bell Bell
-        err = json.Unmarshal(data.Instrument, &bell); if err!=nil { return err }
+        err = json.Unmarshal(data.Inst, &bell); if err!=nil { return err }
         InstrumentObj = bell
     } else if _,has:=Keys["DrumSize"]; has {
         var drum Drum
-        err = json.Unmarshal(data.Instrument, &drum); if err!=nil { return err }
+        err = json.Unmarshal(data.Inst, &drum); if err!=nil { return err }
         InstrumentObj = drum
     } else {
-        return fmt.Errorf("Unknown Instument Type: %s",data.Instrument)
+        return fmt.Errorf("Unknown Instument Type: %s",data.Inst)
     }
 
-    me.Name, me.Instrument = data.Name, InstrumentObj
+    me.Name, me.Inst = data.Name, InstrumentObj
     return nil
 }
 
@@ -100,11 +100,11 @@ func Example_1BeforeAfter() {
     fmt.Printf("After : member2=%#v\n",member2)
 
     // Output:
-    // Before: member1=jsonface_test.BandMember{Name:"Christopher", Instrument:jsonface_test.Drum{DrumSize:25}}
-    // Marshalled: member1={"Name":"Christopher","Instrument":{"DrumSize":25}}
-    // After : member1=jsonface_test.BandMember{Name:"Christopher", Instrument:jsonface_test.Drum{DrumSize:25}}
-    // Before: member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Instrument:jsonface_test.Bell{BellPitch:"B♭"}}
-    // Marshalled: member2={"Name":"Gabriella","Instrument":{"BellPitch":"B♭"}}
-    // After : member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Instrument:jsonface_test.Bell{BellPitch:"B♭"}}
+    // Before: member1=jsonface_test.BandMember{Name:"Christopher", Inst:jsonface_test.Drum{DrumSize:25}}
+    // Marshalled: member1={"Name":"Christopher","Inst":{"DrumSize":25}}
+    // After : member1=jsonface_test.BandMember{Name:"Christopher", Inst:jsonface_test.Drum{DrumSize:25}}
+    // Before: member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Inst:jsonface_test.Bell{BellPitch:"B♭"}}
+    // Marshalled: member2={"Name":"Gabriella","Inst":{"BellPitch":"B♭"}}
+    // After : member2=jsonface_test.BandMember_UsingJsonface{Name:"Gabriella", Inst:jsonface_test.Bell{BellPitch:"B♭"}}
 }
 

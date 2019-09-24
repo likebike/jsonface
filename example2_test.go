@@ -25,11 +25,11 @@ func (me Square) Area() float64 { return me.Length*me.Length }
 
 func Shape_UnmarshalJSON_1(bs []byte) (interface{},error) {
     var data map[string]float64
-    err:=json.Unmarshal(bs,&data); if err!=nil { return nil,err }
-    if v,has:=data["Radius"]; has {
+    err := json.Unmarshal(bs,&data); if err!=nil { return nil,err }
+    if v,has := data["Radius"]; has {
         if v<0 { return nil,errors.New("Negative Radius") }
         return Circle{v},nil
-    } else if v,has:=data["Length"]; has {
+    } else if v,has := data["Length"]; has {
         if v<0 { return nil,errors.New("Negative Length") }
         return Square{v},nil
     } else {
@@ -49,12 +49,12 @@ func Example_2Direct() {
     var s2 Shape = Square{5.0}
     fmt.Printf("Before: s1=%#v s2=%#v\n",s1,s2)
 
-    s1bs,err:=json.Marshal(s1); if err!=nil { panic(err) }
-    s2bs,err:=json.Marshal(s2); if err!=nil { panic(err) }
+    s1bs,err := json.Marshal(s1); if err!=nil { panic(err) }
+    s2bs,err := json.Marshal(s2); if err!=nil { panic(err) }
     fmt.Printf("Marshalled: s1=%s s2=%s\n",s1bs,s2bs)
 
-    err=jsonface.GlobalUnmarshal(s1bs,&s1); if err!=nil { panic(err) }
-    err=jsonface.GlobalUnmarshal(s2bs,&s2); if err!=nil { panic(err) }
+    err = jsonface.GlobalUnmarshal(s1bs,&s1); if err!=nil { panic(err) }
+    err = jsonface.GlobalUnmarshal(s2bs,&s2); if err!=nil { panic(err) }
     fmt.Printf("After : s1=%#v s2=%#v\n",s1,s2)
 
     // Output:

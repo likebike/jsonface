@@ -27,7 +27,7 @@ func Shape_UnmarshalJSON_2(bs []byte) (interface{},error) {
         Type string
         Side float64
     }
-    err:=json.Unmarshal(bs,&data); if err!=nil { return nil,err }
+    err := json.Unmarshal(bs,&data); if err!=nil { return nil,err }
     if data.Side<0 { return nil,errors.New("Negative Side") }
 
     switch data.Type {
@@ -38,14 +38,14 @@ func Shape_UnmarshalJSON_2(bs []byte) (interface{},error) {
 }
 
 func (me Pentagon) MarshalJSON() ([]byte,error) {
-    data:=struct {
+    data := struct {
         Type string
         Side float64
     }{"Pentagon",me.Side}
     return json.Marshal(data)
 }
 func (me Hexagon) MarshalJSON() ([]byte,error) {
-    data:=struct {
+    data := struct {
         Type string
         Side float64
     }{"Hexagon",me.Side}
@@ -64,12 +64,12 @@ func Example_3Direct() {
     var s2 Shape = Hexagon{5}
     fmt.Printf("Before: s1=%#v s2=%#v\n",s1,s2)
 
-    s1bs,err:=json.Marshal(s1); if err!=nil { panic(err) }
-    s2bs,err:=json.Marshal(s2); if err!=nil { panic(err) }
+    s1bs,err := json.Marshal(s1); if err!=nil { panic(err) }
+    s2bs,err := json.Marshal(s2); if err!=nil { panic(err) }
     fmt.Printf("Marshalled: s1=%s s2=%s\n",s1bs,s2bs)
 
-    err=jsonface.GlobalUnmarshal(s1bs,&s1); if err!=nil { panic(err) }
-    err=jsonface.GlobalUnmarshal(s2bs,&s2); if err!=nil { panic(err) }
+    err = jsonface.GlobalUnmarshal(s1bs,&s1); if err!=nil { panic(err) }
+    err = jsonface.GlobalUnmarshal(s2bs,&s2); if err!=nil { panic(err) }
     fmt.Printf("After : s1=%#v s2=%#v\n",s1,s2)
 
     // Output:

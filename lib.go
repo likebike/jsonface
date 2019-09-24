@@ -11,12 +11,12 @@
 //         Instrument interface {
 //             Play()
 //         }
-//         Bell  struct { Size float64 }
-//         Drum  struct { Size float64 }
-//         
+//         Bell  struct { BellPitch string }  // I am using contrived field names
+//         Drum  struct { DrumSize  float64 } // to keep this example simple.
+//     
 //         BandMember struct {
-//             Name       string
-//             Instrument Instrument    // <---- Interface Member
+//             Name string
+//             Inst Instrument    // <---- Interface Member
 //         }
 //     )
 //
@@ -30,7 +30,9 @@
 // This jsonface package enables me to define the unmarshalling logic at the Instrument
 // level, avoiding the leaky-complexity described above.
 //
-// Also note, the example above just shows a very simple interface struct field, but jsonface is very general; It can handle any data structure, no matter how deep or complex.
+// Also note, the example above just shows a very simple interface struct field,
+// but jsonface is very general; It can handle any data structure, no matter how
+// deep or complex.
 //
 // See the examples below:
 package jsonface
@@ -45,14 +47,15 @@ import (
     "sync"
 )
 
-// 'CB' means 'Callback'.  It is used for unmarshalling, exactly like an UnmarshalJSON method.
+// 'CB' means 'Callback'.  It is used for unmarshalling, like an UnmarshalJSON method.
 type CB func([]byte) (interface{},error)
 
 // TypeName is the name of a type (usually prefixed by the package name).
 // If you don't know the correct TypeName to use, try the GetTypeName() function.
 type TypeName string
 
-// CBMap is a TypeName-->CB mapping.  It is used to tell the jsonface system which callbacks to use for which types.
+// CBMap is a TypeName-->CB mapping.  It is used to tell the jsonface system which
+// callbacks to use for which types.
 type CBMap map[TypeName]CB
 
 // GetTypeName can help you understand the correct TypeNames to use during development.
@@ -83,7 +86,11 @@ func unwrapCBErr(e error) error {
     }
 }
 
-// StuntDouble is a type used internally within jsonface.  Users of jsonface should ignore this type.  It is an exported symbol (capitalized) for technical reasons -- the Go json unmarshaller requires destination types to be exported; an unexported symbol (lowercase) would not work.  I apologize for the API noise.
+// StuntDouble is a type used internally within jsonface.  Users of jsonface
+// should ignore this type.  It is an exported symbol (capitalized) for
+// technical reasons -- the Go json unmarshaller requires destination types to
+// be exported; an unexported symbol (lowercase) would not work.
+// I apologize for the API noise.
 type StuntDouble string
 func (me StuntDouble) MarshalJSON() ([]byte,error) {
     if len(me)==0 { return []byte("null"),nil }
@@ -105,8 +112,10 @@ var globalCBs=struct {
 }{sync.RWMutex{},CBMap{}}
 
 // AddGlobalCB adds an entry to the global callback registry.
-// Then, when GlobalUnmarshal() is called, this global registry will be used to perform the unmarshalling.
-// You will normally call AddGlobalCB() during program initialization (from an init() function) to register your unmarshallable interfaces.
+// Then, when GlobalUnmarshal() is called, this global registry will be used to
+// perform the unmarshalling.  You will normally call AddGlobalCB() during
+// program initialization (from an init() function) to register your
+// unmarshallable interfaces.
 func AddGlobalCB(name TypeName, cb CB) {
     globalCBs.Lock(); defer globalCBs.Unlock()
     if _,has:=globalCBs.m[name]; has { panic(errors.New("CB already defined")) }
@@ -114,22 +123,30 @@ func AddGlobalCB(name TypeName, cb CB) {
 }
 
 // ResetGlobalCBs removes all definitions from the global callback registry.
-// You probably shouldn't use this -- I just need to use it from my unit tests because Go runs all tests consecutively without resetting the namespace, and so my tests conflict with eachother.  I need to use this to reset the registry between tests.
+// You probably shouldn't use this -- I just need to use it from my unit tests
+// because Go runs all tests consecutively without resetting the namespace, and
+// so my tests conflict with eachother.  I need to use this to reset the
+// registry between tests.
 //
-// If you think you need this, instead consider using Unmarshal() and passing in your own CBMap.
+// If you think you need this, instead consider using Unmarshal() and passing
+// in your own CBMap.
 func ResetGlobalCBs() {
     fmt.Fprintln(os.Stderr, "Warning: You are calling ResetGlobalCBs.  This should probably only be used from the jsonface unit tests!")
     globalCBs.Lock(); defer globalCBs.Unlock()
     for k:=range globalCBs.m { delete(globalCBs.m,k) }
 }
 
-// GlobalUnmarshal uses the global callback registry (created by the AddGlobalCB() funcion) to unmarshal data.
+// GlobalUnmarshal uses the global callback registry (created by the
+// AddGlobalCB() funcion) to unmarshal data.
 func GlobalUnmarshal(bs []byte, destPtr interface{}) error {
     globalCBs.RLock(); defer globalCBs.RUnlock()
     return Unmarshal(bs,destPtr,globalCBs.m)
 }
 
-// Unmarshal uses the provided CBMap to perform unmarshalling.  It does not use the global callback registry.  Most users will want to use GlobalUnmarshal() instead, but this function is provided for extra flexibility in advanced situations.
+// Unmarshal uses the provided CBMap to perform unmarshalling.  It does not use
+// the global callback registry.  Most users will want to use GlobalUnmarshal()
+// instead, but this function is provided for extra flexibility in advanced
+// situations.
 func Unmarshal(bs []byte, destPtr interface{}, cbs CBMap) error {
     destPtrV:=reflect.ValueOf(destPtr)
     if !destPtrV.IsValid() { return errors.New("invalid destPtr") }
@@ -145,7 +162,9 @@ func Unmarshal(bs []byte, destPtr interface{}, cbs CBMap) error {
     return nil
 }
 
-// stuntdoubleType transforms the given 'realType' to a StuntDouble type.  Primitive types (like int) and types that do not have an entry in the CBMap do not need transformation, and are returned directly.
+// stuntdoubleType transforms the given 'realType' to a StuntDouble type.
+// Primitive types (like int) and types that do not have an entry in the CBMap
+// do not need transformation, and are returned directly.
 func stuntdoubleType(realType reflect.Type, cbs CBMap) (reflect.Type,bool,error) {
     if realType==nil { return nil,false,errors.New("nil realType!  If you are trying to get the type of an interface, you must use some indirection because Go discards the types of interface values at compile time.  See https://golang.org/pkg/reflect/#TypeOf .  Example: var x MyInterface; stuntdoubleType(reflect.ValueOf(&x).Elem().Type(), cbs)") }
 
@@ -199,7 +218,9 @@ func stuntdoubleType(realType reflect.Type, cbs CBMap) (reflect.Type,bool,error)
     }
 }
 
-// stuntdoubleToReal is the inverse of 'stuntdoubleType'.  It transforms a type containing StuntDoubles into a real type.  It uses the callbacks in CBMap to accomplish this.
+// stuntdoubleToReal is the inverse of 'stuntdoubleType'.  It transforms a type
+// containing StuntDoubles into a real type.  It uses the callbacks in CBMap to
+// accomplish this.
 func stuntdoubleToReal(sd,real reflect.Value, cbs CBMap) error {
     sdType:=sd.Type(); realType:=real.Type()
 

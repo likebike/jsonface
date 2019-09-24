@@ -39,70 +39,70 @@ type (
 
 func Food_UnmarshalJSON(bs []byte) (interface{},error) {
     var data struct { Type string }
-    err:=json.Unmarshal(bs,&data); if err!=nil { return nil,err }
+    err := json.Unmarshal(bs,&data); if err!=nil { return nil,err }
 
     switch data.Type {
     case "Water": return Water{},nil
     case "Ice": return Ice{},nil
     case "Grass":
         var x Grass
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
+        err = jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
         return x,nil
     case "Corn":
         var x Corn
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
+        err = jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
         return x,nil
     case "Cornflakes":
         var x Cornflakes
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
+        err = jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
         return x,nil
     case "Cow":
         // The Cow type contains nested Food interfaces which must also be unmarshalled.
         type X Cow  // Use indirection to avoid infinite recursion.
         var x X
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
+        err = jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
         return Cow(x),nil
     case "Milk": return Milk{},nil
     case "Cream": return Cream{},nil
     case "IceCream":
         var x IceCream
-        err=jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
+        err = jsonface.GlobalUnmarshal(bs,&x); if err!=nil { return nil,err }
         return x,nil
     default: return nil,fmt.Errorf("Unknown Food Type: %s",bs)
     }
 }
 
 func (me Water) MarshalJSON() ([]byte,error) {
-    data:=struct{Type string}{"Water"}
+    data := struct{Type string}{"Water"}
     return json.Marshal(data)
 }
 func (me Ice) MarshalJSON() ([]byte,error) {
-    data:=struct{Type string}{"Ice"}
+    data := struct{Type string}{"Ice"}
     return json.Marshal(data)
 }
 func (me Grass) MarshalJSON() ([]byte,error) {
-    data:=struct{
+    data := struct{
         Type string
         W    Water
     }{"Grass",me.W}
     return json.Marshal(data)
 }
 func (me Corn) MarshalJSON() ([]byte,error) {
-    data:=struct{
+    data := struct{
         Type string
         Ws   []Water
     }{"Corn",me.Ws}
     return json.Marshal(data)
 }
 func (me Cornflakes) MarshalJSON() ([]byte,error) {
-    data:=struct{
+    data := struct{
         Type string
         C    Corn
     }{"Cornflakes",me.C}
     return json.Marshal(data)
 }
 func (me Cow) MarshalJSON() ([]byte,error) {
-    data:=struct{
+    data := struct{
         Type string
         Name string
         Ate  []Food
@@ -110,15 +110,15 @@ func (me Cow) MarshalJSON() ([]byte,error) {
     return json.Marshal(data)
 }
 func (me Milk) MarshalJSON() ([]byte,error) {
-    data:=struct{Type string}{"Milk"}
+    data := struct{Type string}{"Milk"}
     return json.Marshal(data)
 }
 func (me Cream) MarshalJSON() ([]byte,error) {
-    data:=struct{Type string}{"Cream"}
+    data := struct{Type string}{"Cream"}
     return json.Marshal(data)
 }
 func (me IceCream) MarshalJSON() ([]byte,error) {
-    data:=struct{
+    data := struct{
         Type string
         I    Ice
         C    Cream
@@ -135,51 +135,51 @@ func Example_4Composites() {
     jsonface.AddGlobalCB("jsonface_test.Food", Food_UnmarshalJSON)
 
     // It rains.  10 Waters are produced:
-    waters:=make([]Water,10)
-    water:=func() (w Water) {
-        w,waters=waters[len(waters)-1],waters[:len(waters)-1]
+    waters := make([]Water,10)
+    water := func() (w Water) {
+        w,waters = waters[len(waters)-1],waters[:len(waters)-1]
         return
     }
 
     // Some Grass and Corn grows:
-    grass:=Grass{water()}
-    corn1:=Corn{[]Water{ water(),water() }}
-    corn2:=Corn{[]Water{ water(),water(),water() }}
+    grass := Grass{water()}
+    corn1 := Corn{[]Water{ water(),water() }}
+    corn2 := Corn{[]Water{ water(),water(),water() }}
 
     // One Corn is turned into Cornflakes:
-    cornflakes:=Cornflakes{corn1}
+    cornflakes := Cornflakes{corn1}
 
     // The cow eats Grass, Corn, and Water:
-    cow:=Cow{"Bessie", []Food{ grass,corn2,water() }}
+    cow := Cow{"Bessie", []Food{ grass,corn2,water() }}
 
     // The cow produces one Milk for each Food it ate:
-    milks:=make([]Milk,len(cow.Ate))
-    milk:=func() (m Milk) {
-        m,milks=milks[len(milks)-1],milks[:len(milks)-1]
+    milks := make([]Milk,len(cow.Ate))
+    milk := func() (m Milk) {
+        m,milks = milks[len(milks)-1],milks[:len(milks)-1]
         return
     }
 
     // One Milk is turned into Cream:
-    cream:=Cream(milk())
+    cream := Cream(milk())
 
     // One Water is turned into Ice:
-    ice:=Ice(water())
+    ice := Ice(water())
 
     // Make IceCream:
-    icecream:=IceCream{ice,cream}
+    icecream := IceCream{ice,cream}
 
     // Gabriella eats cereal for breakfast, icecream for lunch, and steak for dinner:
-    gabriella:=Girl{"Gabriella", map[MealName][]Food{
+    gabriella := Girl{"Gabriella", map[MealName][]Food{
         "Breakfast":{ cornflakes,milk() },
         "Lunch":{ icecream,water() },
         "Dinner":{ cow,milk() },
     }}
     fmt.Printf("Before: gabriella=%#v\n",gabriella)
 
-    bs,err:=json.Marshal(gabriella); if err!=nil { panic(err) }
+    bs,err := json.Marshal(gabriella); if err!=nil { panic(err) }
     fmt.Printf("Marshalled: gabriella=%s\n",bs)
 
-    err=jsonface.GlobalUnmarshal(bs,&gabriella); if err!=nil { panic(err) }
+    err = jsonface.GlobalUnmarshal(bs,&gabriella); if err!=nil { panic(err) }
     fmt.Printf("After : gabriella=%#v\n",gabriella)
 
     // Output:
