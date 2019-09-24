@@ -90,8 +90,8 @@ func init() {
 }
 
 func main() {
-    var bandmember BandMember
     bs := []byte(`{"Name":"Gabriella","Inst":{"BellPitch":"B♭"}}`)
+    var bandmember BandMember
     err := jsonface.GlobalUnmarshal(bs,&bandmember); if err!=nil { panic(err) }
     fmt.Printf("bandmember=%#v\n",bandmember)
 
