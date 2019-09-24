@@ -2,23 +2,8 @@
 <%block name="PAGE_CSS">
     <link rel="stylesheet" type="text/css" href="${pyhpy.url('/static/css/home.css')}">
 </%block>
-PyHPy is a static website generation framework, built on top of the [Python](http://python.org/)-powered [Mako](http://www.makotemplates.org/) templating engine.
 
-TODO:
-
-* Re-do this home-page.  It's terrible.
-
-* "Show this page source"
-
-* Copy Clay style -- beautiful, and home page explains everything perfectly.
-
-* I like Nikola's docs -- showing cli screenshots to the right.  Really helps to reduce size of docs.
-
-* Sphinx doc format is beautiful.
-
-* Photo album should show PyHPy-related photos, helpful for better understanding.
-
-
+I am currently creating this jsonface webpage.  Check back soon...
 
 
 === <i class="fa fa-files-o fa-lg"></i> Static is Beautiful ===
