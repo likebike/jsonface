@@ -62,14 +62,14 @@ a#logo div.asciiLogo {
     font-weight: 900;
     font-size: 8px;
     line-height: 1.2em;
-    margin-top: -50px;
-    margin-left: -25px;
+    margin-top: -10px;
+    margin-left: 300px;
     vertical-align: middle;
     color: #000;
 }
 a#logo div.asciiLogo.vcompressed {
     line-height: 1.1em;
-    font-size: 7.5px;
+    font-size: 20px;
 }
 a#logo div.name {
     position: absolute;
