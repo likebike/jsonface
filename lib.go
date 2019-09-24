@@ -11,8 +11,8 @@
 //         Instrument interface {
 //             Play()
 //         }
-//         Bell  struct { BellPitch string }  // I am using contrived field names
-//         Drum  struct { DrumSize  float64 } // to keep this example simple.
+//         Bell  struct { BellPitch string }   // I am using contrived field names
+//         Drum  struct { DrumSize  float64 }  // to keep this example simple.
 //     
 //         BandMember struct {
 //             Name string
