@@ -34,7 +34,7 @@
 // but jsonface is very general; It can handle any data structure, no matter how
 // deep or complex.
 //
-// See the examples below:
+// See the included examples for more usage information.
 package jsonface
 
 import (
@@ -47,7 +47,8 @@ import (
     "sync"
 )
 
-// 'CB' means 'Callback'.  It is used for unmarshalling, like an UnmarshalJSON method.
+// 'CB' means 'Callback'.  It is used for unmarshalling, with the same interface
+// as an UnmarshalJSON method.
 type CB func([]byte) (interface{},error)
 
 // TypeName is the name of a type (usually prefixed by the package name).
