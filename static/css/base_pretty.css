@@ -49,7 +49,7 @@ a#logo {
     display: block;
     position: absolute;
     top: 30px;
-    left: 30px;
+    left: 0;
     font-size: 362%;
 }
 a#logo img {
@@ -63,7 +63,7 @@ a#logo div.asciiLogo {
     font-size: 8px;
     line-height: 1.2em;
     margin-top: -10px;
-    margin-left: 300px;
+    margin-left: 400px;
     vertical-align: middle;
     color: #000;
 }
@@ -74,7 +74,7 @@ a#logo div.asciiLogo.vcompressed {
 a#logo div.name {
     position: absolute;
     top:  0px;
-    left: 90px;
+    left: 50px;
     color: #a3312d;
     font-family: 'Acme', sans-serif;
     font-weight: normal;
