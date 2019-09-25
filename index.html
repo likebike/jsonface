@@ -13,9 +13,9 @@
     <link rel="stylesheet" type="text/css" href="/static/lib/yui-3.12.0/reset_base_fonts-min.css">
     <link rel="stylesheet" type="text/css" href="/static/lib/font-awesome-4.5.0/css/font-awesome.css">
     <link rel="stylesheet" type="text/css" href="/static/css/github-markdown.css?_=1569358193.31">
-    <link rel="stylesheet" type="text/css" href="/static/css/base_pretty.css?_=1569359538.72">
+    <link rel="stylesheet" type="text/css" href="/static/css/base_pretty.css?_=1569400313.65">
     
-    <link rel="stylesheet" type="text/css" href="/static/css/home.css?_=1569358193.31">
+    <link rel="stylesheet" type="text/css" href="/static/css/home.css?_=1569400772.04">
 
     <script type="text/javascript" src="/static/lib/jquery-1.10.2/jquery.js"></script>
     <script type="text/javascript" src="/static/lib/underscore-1.5.2/underscore.js"></script>
@@ -42,62 +42,94 @@
       <hr>
     </section>
     <section id=content>
-      <article class="markdown-body"><p>I am currently creating this jsonface webpage.&nbsp; Check back soon...</p>
-<h3><i class="fa fa-files-o fa-lg"></i> Static is Beautiful</h3>
-<p>Static webpages have some very nice features:</p>
-<ul>
-<li>
-<p>Static is <em>Fast</em>.&nbsp; Nothing is faster than serving a static page.&nbsp; A static website can easily survive huge traffic spikes.</p>
-</li>
-<li>
-<p>Static is Immortal.&nbsp; Once a static webpage is online, it almost never breaks.&nbsp; No maintenence is required to keep them online.&nbsp; They handle server upgrades, library updates, and host migrations with ease.</p>
-</li>
-<li>
-<p>Impossible to Hack.&nbsp; A static page never introduces any extra security vulnerabilities.&nbsp; Much, <em>much</em> safer than a dynamic site.</p>
-</li>
-<li>
-<p>Easy to Host.&nbsp; Static websites are supported by <em>every</em> web host.</p>
-</li>
-</ul>
-<h3><i class="fa fa-thumbs-o-up fa-lg"></i> Mako is Awesome</h3>
-<p>I chose to build this framework on top of <a href="http://www.makotemplates.org/">Mako</a> for the following reasons:</p>
-<ul>
-<li>
-<p>Mako can produce any kind of output -- not just webpages.&nbsp; Therefore, you can use PyHPy for any kind of static output generation.&nbsp; (I like general solutions.)</p>
-</li>
-<li>
-<p>Mako's <a href="http://docs.makotemplates.org/en/latest/inheritance.html">powerful template inheritence</a> makes it easy to create consistent, scalable websites, no matter how large your site gets.</p>
-</li>
-<li>
-<p>Small Feature Set.&nbsp; Helps you to learn it quickly.</p>
-</li>
-<li>
-<p>Widely Used.&nbsp; Two famous users are <a href="https://github.com/reddit/reddit/">reddit.com</a> and <a href="http://www.pylonsproject.org/">Pylons/Pyramid</a>.</p>
-</li>
-</ul>
-<h3><i class="fa fa-paper-plane-o fa-lg"></i> PyHPy Makes it Easy</h3>
-<p>PyHPy combines powerful tools like <code>rsync</code>, <code>make</code>, and <code>mako-render</code>, and adds a layer of convenience and integration on top.</p>
-<ul>
-<li>
-<p><a href="https://en.wikipedia.org/wiki/Markdown">MarkDown</a> Integration.&nbsp; Just type your content text into an <code>.md</code> file and it becomes a beautiful webpage.&nbsp; Easy enough for my Mom.</p>
-</li>
-<li>
-<p>Improved Error Reporting.&nbsp; When things go wrong, PyHPy produces very detailed and helpful error reports, allowing you to pin-point the cause of the problem with minimal effort.</p>
-</li>
-<li>
-<p>TODO: I need to write more details that are specific to PyHPy.&nbsp; Get rid of the Expires Header and FontAwesome stuff -- anybody can do that.&nbsp; I need to answer the question: does PyHPy actually solve a real problem?&nbsp; Why would I use it over Blogofile?&nbsp; ...Or Pelican?&nbsp; Or Jekyll?&nbsp; Can I integrate with GitHub Pages?&nbsp; Do I plan to support ReStructuredText?&nbsp; Do I have easy ability to use themes from elsewhere?&nbsp; No.&nbsp; ...I guess PyHPy is supposed to be a good <em>general</em> solution to static output generation, and therefore doesn't have the ability to focus on any of those particular goals.&nbsp; Need to demonstrate awesome, <em>realistic</em> use cases that the other systems just can't do.&nbsp; Also seems like PyHPy actually has a much simpler model than Blogofile/Nikola.&nbsp; Much less structured --&gt; less to learn to get started, more work later.&nbsp; I need to adjust PyHPy so that it's <em>so</em> simple that it can be understood <em>completely</em> in several bullet-points.</p>
-</li>
-</ul>
-<p>Here's the typical process of building a site with PyHPy:</p>
-<ol>
-<li>Create content (like MarkDown), Mako templates, and static files (like images) in an <code>input</code> directory.</li>
-<li>Run <code>make</code>.&nbsp; Content and templates are rendered, and the results are published to an <code>output</code> directory.</li>
-<li>View the output in a web browser.&nbsp; If you're not totally happy with the result, GOTO 1.</li>
-<li>Upload the <code>output</code> directory to your web server using <code>rsync</code> or <code>FTP</code>.</li>
-</ol>
-<p>The best way to start learning PyHPy is to read through the included <code>input.example/</code>, which produces <em>this</em> website.&nbsp; You can also read the documentation articles that are included in the <a href="/blog.html">demo blog</a>.&nbsp; If you have questions, send them to <a href="mailto:csebastian3@gmail.com">Christopher Sebastian</a>.</p>
-<p><strong><a href="/photos.html"><i class="fa fa-photo fa-lg"></i> View the Demo Photo Album</a></strong></p>
-<p><strong><a href="/blog.html"><i class="fa fa-newspaper-o fa-lg"></i> View the Demo Blog</a></strong></p></article>
+      <article class="markdown-body"><p><strong>Installation:</strong> <code>go get github.com/likebike/jsonface</code></p>
+<p><strong>Source Code:</strong> <a href="https://github.com/likebike/jsonface">https://github.com/likebike/jsonface</a></p>
+<p><strong>API docs and usage examples:</strong> <a href="https://godoc.org/github.com/likebike/jsonface">https://godoc.org/github.com/likebike/jsonface</a></p>
+<h2>About</h2>
+<p>jsonface enables you to isolate your data type design from your deserialization logic.</p>
+<p>When writing Go programs, I often want to create types that contain interface members like this:</p>
+<pre><code>type (
+    Instrument interface {
+        Play()
+    }
+    Bell  struct { BellPitch string }   // I am using contrived field names
+    Drum  struct { DrumSize  float64 }  // to keep this example simple.
+
+    BandMember struct {
+        Name string
+        Inst Instrument    // &lt;---- Interface Member
+    }
+)
+</code></pre>
+<p>...But if I want to serialize/deserialize a BandMember using JSON, I'm going
+to have a bit of a problem because Go's json package can't unmarshal into an interface.
+Therefore, I need to define some custom unmarshalling logic at the BandMember level.
+This is not ideal, since the logic should really belong to Instrument, not BandMember.
+It becomes especially problematic if I have other data types that also contain
+Instrument members because then the unmarshalling complexity spreads there too!</p>
+<p>This jsonface package enables me to define the unmarshalling logic at the Instrument
+level, avoiding the leaky-complexity described above.</p>
+<p>Also note, the example above just shows a very simple interface struct field,
+but jsonface is very general; It can handle any data structure, no matter how
+deep or complex.</p>
+<h2>Example</h2>
+<pre><code class="go">package main
+
+import (
+    &quot;fmt&quot;
+    &quot;encoding/json&quot;
+
+    &quot;github.com/likebike/jsonface&quot;
+)
+
+type (
+    Instrument interface {
+        Play()
+    }
+    Bell  struct { BellPitch string }   // I am using contrived field names
+    Drum  struct { DrumSize  float64 }  // to keep this example simple.
+
+    BandMember struct {
+        Name string
+        Inst Instrument    // &lt;---- Interface Member
+    }
+)
+
+func (me Bell)  Play() { fmt.Printf(&quot;Ding (%s Bell)\n&quot;, me.BellPitch) }
+func (me Drum)  Play() { fmt.Printf(&quot;Boom (%f Drum)\n&quot;, me.DrumSize) }
+
+func Instrument_UnmarshalJSON(bs []byte) (interface{},error) {
+    var Keys map[string]interface{}
+    err := json.Unmarshal(bs, &amp;Keys); if err!=nil { return nil,err }
+
+    if _,has:=Keys[&quot;BellPitch&quot;]; has {
+        var bell Bell
+        err = json.Unmarshal(bs, &amp;bell); if err!=nil { return nil,err }
+        return bell,nil
+    } else if _,has:=Keys[&quot;DrumSize&quot;]; has {
+        var drum Drum
+        err = json.Unmarshal(bs, &amp;drum); if err!=nil { return nil,err }
+        return drum,nil
+    } else {
+        return nil,fmt.Errorf(&quot;Unknown Instument Type: %s&quot;,bs)
+    }
+}
+
+// Register the callback with jsonface:
+func init() {
+    jsonface.AddGlobalCB(&quot;main.Instrument&quot;, Instrument_UnmarshalJSON)
+}
+
+func main() {
+    bs := []byte(`{&quot;Name&quot;:&quot;Gabriella&quot;,&quot;Inst&quot;:{&quot;BellPitch&quot;:&quot;B♭&quot;}}`)
+    var bandmember BandMember
+    err := jsonface.GlobalUnmarshal(bs,&amp;bandmember); if err!=nil { panic(err) }
+    fmt.Printf(&quot;bandmember=%#v\n&quot;,bandmember)
+
+    // Output:
+    // bandmember=main.BandMember{Name:&quot;Gabriella&quot;, Inst:main.Bell{BellPitch:&quot;B♭&quot;}}
+}
+</code></pre></article>
     </section>
     <section id=footer>
       <hr>

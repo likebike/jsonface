@@ -63,7 +63,7 @@ a#logo div.asciiLogo {
     font-size: 8px;
     line-height: 1.2em;
     margin-top: -10px;
-    margin-left: 400px;
+    margin-left: 500px;
     vertical-align: middle;
     color: #000;
 }
@@ -75,7 +75,7 @@ a#logo div.name {
     position: absolute;
     top:  0px;
     left: 50px;
-    color: #a3312d;
+    color: #d22ec2;
     font-family: 'Acme', sans-serif;
     font-weight: normal;
     font-size: 72px;
