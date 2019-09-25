@@ -8,7 +8,7 @@ Unmarshal JSON data into Go Interfaces
 **API docs and usage examples:** [https://godoc.org/github.com/likebike/jsonface](https://godoc.org/github.com/likebike/jsonface)
 
 
-== About jsonface
+## About jsonface
 
 jsonface enables you to isolate your data type design from your deserialization logic.
 
@@ -42,7 +42,7 @@ but jsonface is very general; It can handle any data structure, no matter how
 deep or complex.
 
 
-== Example
+## Example
 
 ```go
 package main
