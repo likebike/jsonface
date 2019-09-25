@@ -10,7 +10,7 @@
 **API docs and usage examples:** [https://godoc.org/github.com/likebike/jsonface](https://godoc.org/github.com/likebike/jsonface)
 
 
-== About
+== About jsonface
 
 jsonface enables you to isolate your data type design from your deserialization logic.
 

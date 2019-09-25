@@ -113,7 +113,7 @@
     </section>
     <section id=footer>
       <hr>
-      ©2019 你好世界
+      ©2019 Christopher Sebastian
     </section>
   </body>
 </html>
