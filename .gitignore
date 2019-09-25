@@ -15,3 +15,10 @@
 *.swp
 *.swo
 
+# Ignore website stuff
+/.1-input.list
+/2-buildarea/
+/3-output/
+/PyHPy/
+/muck/
+

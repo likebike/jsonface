@@ -1,12 +1,14 @@
 # jsonface
 Unmarshal JSON data into Go Interfaces
 
-    go get github.com/likebike/jsonface
+**Installation:** ```go get github.com/likebike/jsonface```
 
-See API docs and usage examples: https://godoc.org/github.com/likebike/jsonface
+**Source Code:** [https://github.com/likebike/jsonface](https://github.com/likebike/jsonface)
+
+**API docs and usage examples:** [https://godoc.org/github.com/likebike/jsonface](https://godoc.org/github.com/likebike/jsonface)
 
 
-## Example
+== About jsonface
 
 jsonface enables you to isolate your data type design from your deserialization logic.
 
@@ -39,7 +41,8 @@ Also note, the example above just shows a very simple interface struct field,
 but jsonface is very general; It can handle any data structure, no matter how
 deep or complex.
 
-Here is a full example:
+
+== Example
 
 ```go
 package main
