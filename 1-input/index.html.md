@@ -3,55 +3,105 @@
     <link rel="stylesheet" type="text/css" href="${pyhpy.url('/static/css/home.css')}">
 </%block>
 
-I am currently creating this jsonface webpage.  Check back soon...
+**Installation:** ```go get github.com/likebike/jsonface```
+
+**Source Code:** [https://github.com/likebike/jsonface](https://github.com/likebike/jsonface)
+
+**API docs and usage examples:** [https://godoc.org/github.com/likebike/jsonface](https://godoc.org/github.com/likebike/jsonface)
 
 
-=== <i class="fa fa-files-o fa-lg"></i> Static is Beautiful ===
+== About
 
-Static webpages have some very nice features:
+jsonface enables you to isolate your data type design from your deserialization logic.
 
-* Static is *Fast*.  Nothing is faster than serving a static page.  A static website can easily survive huge traffic spikes.
+When writing Go programs, I often want to create types that contain interface members like this:
 
-* Static is Immortal.  Once a static webpage is online, it almost never breaks.  No maintenence is required to keep them online.  They handle server upgrades, library updates, and host migrations with ease.
+    type (
+        Instrument interface {
+            Play()
+        }
+        Bell  struct { BellPitch string }   // I am using contrived field names
+        Drum  struct { DrumSize  float64 }  // to keep this example simple.
+    
+        BandMember struct {
+            Name string
+            Inst Instrument    // <---- Interface Member
+        }
+    )
 
-* Impossible to Hack.  A static page never introduces any extra security vulnerabilities.  Much, *much* safer than a dynamic site.
+...But if I want to serialize/deserialize a BandMember using JSON, I'm going
+to have a bit of a problem because Go's json package can't unmarshal into an interface.
+Therefore, I need to define some custom unmarshalling logic at the BandMember level.
+This is not ideal, since the logic should really belong to Instrument, not BandMember.
+It becomes especially problematic if I have other data types that also contain
+Instrument members because then the unmarshalling complexity spreads there too!
 
-* Easy to Host.  Static websites are supported by *every* web host.
+This jsonface package enables me to define the unmarshalling logic at the Instrument
+level, avoiding the leaky-complexity described above.
 
-
-=== <i class="fa fa-thumbs-o-up fa-lg"></i> Mako is Awesome ===
-
-I chose to build this framework on top of [Mako](http://www.makotemplates.org/) for the following reasons:
-
-* Mako can produce any kind of output -- not just webpages.  Therefore, you can use PyHPy for any kind of static output generation.  (I like general solutions.)
-
-* Mako's [powerful template inheritence](http://docs.makotemplates.org/en/latest/inheritance.html) makes it easy to create consistent, scalable websites, no matter how large your site gets.
-
-* Small Feature Set.  Helps you to learn it quickly.
-
-* Widely Used.  Two famous users are [reddit.com](https://github.com/reddit/reddit/) and [Pylons/Pyramid](http://www.pylonsproject.org/).
+Also note, the example above just shows a very simple interface struct field,
+but jsonface is very general; It can handle any data structure, no matter how
+deep or complex.
 
 
-=== <i class="fa fa-paper-plane-o fa-lg"></i> PyHPy Makes it Easy ===
+== Example
 
-PyHPy combines powerful tools like `rsync`, `make`, and `mako-render`, and adds a layer of convenience and integration on top.
+```go
+package main
 
-* [MarkDown](https://en.wikipedia.org/wiki/Markdown) Integration.  Just type your content text into an `.md` file and it becomes a beautiful webpage.  Easy enough for my Mom.
+import (
+    "fmt"
+    "encoding/json"
 
-* Improved Error Reporting.  When things go wrong, PyHPy produces very detailed and helpful error reports, allowing you to pin-point the cause of the problem with minimal effort.
+    "github.com/likebike/jsonface"
+)
 
-* TODO: I need to write more details that are specific to PyHPy.  Get rid of the Expires Header and FontAwesome stuff -- anybody can do that.  I need to answer the question: does PyHPy actually solve a real problem?  Why would I use it over Blogofile?  ...Or Pelican?  Or Jekyll?  Can I integrate with GitHub Pages?  Do I plan to support ReStructuredText?  Do I have easy ability to use themes from elsewhere?  No.  ...I guess PyHPy is supposed to be a good *general* solution to static output generation, and therefore doesn't have the ability to focus on any of those particular goals.  Need to demonstrate awesome, *realistic* use cases that the other systems just can't do.  Also seems like PyHPy actually has a much simpler model than Blogofile/Nikola.  Much less structured --> less to learn to get started, more work later.  I need to adjust PyHPy so that it's *so* simple that it can be understood *completely* in several bullet-points.
+type (
+    Instrument interface {
+        Play()
+    }
+    Bell  struct { BellPitch string }   // I am using contrived field names
+    Drum  struct { DrumSize  float64 }  // to keep this example simple.
 
-Here's the typical process of building a site with PyHPy:
+    BandMember struct {
+        Name string
+        Inst Instrument    // <---- Interface Member
+    }
+)
 
-1. Create content (like MarkDown), Mako templates, and static files (like images) in an `input` directory.
-1. Run `make`.  Content and templates are rendered, and the results are published to an `output` directory.
-1. View the output in a web browser.  If you're not totally happy with the result, GOTO 1.
-1. Upload the `output` directory to your web server using `rsync` or `FTP`.
+func (me Bell)  Play() { fmt.Printf("Ding (%s Bell)\n", me.BellPitch) }
+func (me Drum)  Play() { fmt.Printf("Boom (%f Drum)\n", me.DrumSize) }
 
-The best way to start learning PyHPy is to read through the included `input.example/`, which produces *this* website.  You can also read the documentation articles that are included in the [demo blog](${pyhpy.url('/blog.html', mtime=None)}).  If you have questions, send them to [Christopher Sebastian](mailto:csebastian3@gmail.com).
+func Instrument_UnmarshalJSON(bs []byte) (interface{},error) {
+    var Keys map[string]interface{}
+    err := json.Unmarshal(bs, &Keys); if err!=nil { return nil,err }
 
-**[<i class="fa fa-photo fa-lg"></i> View the Demo Photo Album](${pyhpy.url('/photos.html', mtime=None)})**
+    if _,has:=Keys["BellPitch"]; has {
+        var bell Bell
+        err = json.Unmarshal(bs, &bell); if err!=nil { return nil,err }
+        return bell,nil
+    } else if _,has:=Keys["DrumSize"]; has {
+        var drum Drum
+        err = json.Unmarshal(bs, &drum); if err!=nil { return nil,err }
+        return drum,nil
+    } else {
+        return nil,fmt.Errorf("Unknown Instument Type: %s",bs)
+    }
+}
 
-**[<i class="fa fa-newspaper-o fa-lg"></i> View the Demo Blog](${pyhpy.url('/blog.html', mtime=None)})**
+// Register the callback with jsonface:
+func init() {
+    jsonface.AddGlobalCB("main.Instrument", Instrument_UnmarshalJSON)
+}
+
+func main() {
+    bs := []byte(`{"Name":"Gabriella","Inst":{"BellPitch":"B♭"}}`)
+    var bandmember BandMember
+    err := jsonface.GlobalUnmarshal(bs,&bandmember); if err!=nil { panic(err) }
+    fmt.Printf("bandmember=%#v\n",bandmember)
+
+    // Output:
+    // bandmember=main.BandMember{Name:"Gabriella", Inst:main.Bell{BellPitch:"B♭"}}
+}
+```
 
