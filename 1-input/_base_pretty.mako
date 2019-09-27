@@ -113,7 +113,7 @@
     </section>
     <section id=footer>
       <hr>
-      ©2019 Christopher Sebastian
+      🄯 2019 <a href="http://likebike.com">Christopher Sebastian</a>
     </section>
   </body>
 </html>
